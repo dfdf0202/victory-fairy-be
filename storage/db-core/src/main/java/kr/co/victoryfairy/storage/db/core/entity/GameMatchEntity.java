@@ -66,13 +66,10 @@ public class GameMatchEntity extends BaseEntity {
     public GameMatchEntity() {
     }
 
-    public GameMatchEntity(String id, MatchEnum.MatchType type, String season, LocalDateTime matchAt,
-                           TeamEntity awayTeamEntity, String awayNm, Short awayScore,
-                           TeamEntity homeTeamEntity, String homeNm, Short homeScore,
-                           String stadium, MatchEnum.MatchStatus status, String reason) {
+    public GameMatchEntity(String id, String sYear, MatchEnum.MatchType matchType, LocalDateTime matchAt, TeamEntity awayTeamEntity, String awayNm, Short awayScore, TeamEntity homeTeamEntity, String homeNm, Short homeScore, MatchEnum.MatchStatus status, String stadium, String reason) {
         this.id = id;
-        this.type = type;
-        this.season = season;
+        this.season = sYear;
+        this.type = matchType;
         this.matchAt = matchAt;
         this.awayTeamEntity = awayTeamEntity;
         this.awayNm = awayNm;
@@ -80,8 +77,8 @@ public class GameMatchEntity extends BaseEntity {
         this.homeTeamEntity = homeTeamEntity;
         this.homeNm = homeNm;
         this.homeScore = homeScore;
-        this.stadium = stadium;
         this.status = status;
+        this.stadium = stadium;
         this.reason = reason;
     }
 }
