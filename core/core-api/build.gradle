@@ -1,0 +1,12 @@
+bootJar.enabled = true
+jar.enabled = false
+
+dependencies {
+    implementation project(":core:core-enum")
+    implementation project(":support:logging")
+    implementation project(":storage:db-core")
+
+    testImplementation project(":tests:api-docs")
+    
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+}
