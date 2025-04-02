@@ -8,8 +8,12 @@ import io.dodn.springboot.core.enums.MatchEnum;
 import io.dodn.springboot.core.enums.TeamEnum;
 import kr.co.victoryfairy.core.craw.service.CrawService;
 import kr.co.victoryfairy.storage.db.core.entity.GameMatchEntity;
+import kr.co.victoryfairy.storage.db.core.entity.HitterRecordEntity;
+import kr.co.victoryfairy.storage.db.core.entity.PitcherRecordEntity;
 import kr.co.victoryfairy.storage.db.core.entity.TeamEntity;
 import kr.co.victoryfairy.storage.db.core.repository.GameMatchEntityRepository;
+import kr.co.victoryfairy.storage.db.core.repository.HitterRecordEntityRepository;
+import kr.co.victoryfairy.storage.db.core.repository.PitcherRecordEntityRepository;
 import kr.co.victoryfairy.storage.db.core.repository.TeamEntityRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,11 +34,16 @@ public class CrawServiceImpl implements CrawService {
 
     private final TeamEntityRepository teamEntityRepository;
     private final GameMatchEntityRepository gameMatchEntityRepository;
+    private final HitterRecordEntityRepository hitterRecordEntityRepository;
+    private final PitcherRecordEntityRepository pitcherRecordEntityRepository;
 
-    public CrawServiceImpl(Browser browser, TeamEntityRepository teamEntityRepository, GameMatchEntityRepository gameMatchEntityRepository) {
+    public CrawServiceImpl(Browser browser, TeamEntityRepository teamEntityRepository, GameMatchEntityRepository gameMatchEntityRepository,
+                           HitterRecordEntityRepository hitterRecordEntityRepository, PitcherRecordEntityRepository pitcherRecordEntityRepository) {
         this.browser = browser;
         this.teamEntityRepository = teamEntityRepository;
         this.gameMatchEntityRepository = gameMatchEntityRepository;
+        this.hitterRecordEntityRepository = hitterRecordEntityRepository;
+        this.pitcherRecordEntityRepository = pitcherRecordEntityRepository;
     }
 
     @Override
@@ -208,49 +217,46 @@ public class CrawServiceImpl implements CrawService {
     }
 
     @Override
+    @Transactional
     public void crawMatchDetail(String sYear) {
         var matches = gameMatchEntityRepository.findBySeason(sYear).stream()
                 .sorted(Comparator.comparing(GameMatchEntity :: getMatchAt))
+                .filter(match -> MatchEnum.MatchStatus.END.equals(match.getStatus()))
                 .toList();
-
-
 
         if (matches.isEmpty()) {
             // TODO : 공통 Exception 생성 후 처리
         }
 
+        List<HitterRecordEntity> hitterEntities = new ArrayList<>();
+        List<PitcherRecordEntity> pitcherEntities = new ArrayList<>();
+
         try (Playwright playwright = Playwright.create()) {
 
             Page page = browser.newPage();
-            matches.stream()
-            .filter(match -> !MatchEnum.MatchStatus.CANCELED.equals(match.getStatus()))
-            .forEach(match -> {
+            matches.forEach(match -> {
                 page.navigate("https://m.koreabaseball.com/Kbo/Live/Record.aspx?p_le_id=1&p_sr_id=" + match.getSeries().getValue() + "&p_g_id=" + match.getId());
 
                 page.waitForSelector("#HitterRank table tbody tr"); // 타자
                 page.waitForSelector("#PitcherRank table tbody tr"); // 투수
-
-                System.out.println("======== 경기 id ========");
-                System.out.println(match.getId());
-                System.out.println("======== 🟥 홈팀 타자 기록 ========");
-                this.scrapeHitterTable(page);
-
-                System.out.println("======== 🟥 홈팀 투수 기록 ========");
-                page.waitForTimeout(500);             // ✅ 안정적 로딩 대기
-                this.scrapPitcherTable(page);
+                var awayHitter = this.scrapeHitterTable(page, false, sYear, match);
+                page.waitForTimeout(500);
+                var awayPitcher = this.scrapPitcherTable(page, false, sYear, match);
 
                 // 탭 클릭해서 원정팀으로 전환
                 page.click("#liveRecordSubTabB");
                 page.waitForTimeout(1000); // 탭 전환 후 데이터 로딩 기다림
-                page.waitForSelector("#HitterRank");
 
-                System.out.println("\n======== 🟦 원정팀 타자 기록 ========");
-                this.scrapeHitterTable(page);
-                System.out.println("\n======== 🟦 원정팀 투수 기록 ========");
-                page.waitForSelector("#PitcherRank"); // ✅ 추가
-                page.waitForTimeout(500);             // ✅ 추가
-                this.scrapPitcherTable(page);
+                page.waitForSelector("#HitterRank table tbody tr"); // 타자
+                page.waitForSelector("#PitcherRank table tbody tr"); // 투수
+                var homeHitter = this.scrapeHitterTable(page, true, sYear, match);
+                page.waitForTimeout(500);
+                var homePitcher = this.scrapPitcherTable(page, true, sYear, match);
 
+                hitterEntities.addAll(awayHitter);
+                hitterEntities.addAll(homeHitter);
+                pitcherEntities.addAll(awayPitcher);
+                pitcherEntities.addAll(homePitcher);
             });
 
             browser.close();
@@ -259,6 +265,8 @@ public class CrawServiceImpl implements CrawService {
             e.printStackTrace();
         }
 
+        hitterRecordEntityRepository.saveAll(hitterEntities);
+        pitcherRecordEntityRepository.saveAll(pitcherEntities);
     }
 
     private LocalDateTime parseDateTime(String sYear, String dateStr, String timeStr) {
@@ -305,16 +313,17 @@ public class CrawServiceImpl implements CrawService {
         return stadium;
     }
 
-    private static void scrapeHitterTable(Page page) {
+    private static List<HitterRecordEntity> scrapeHitterTable(Page page, Boolean isHome, String year, GameMatchEntity gameMatchEntity) {
         List<ElementHandle> infoRows = page.querySelectorAll("#HitterRank table.tbl-new.fixed tbody tr");
         List<ElementHandle> statRows = page.querySelectorAll("#HitterRank .scroll-box table.tbl-new tbody tr");
 
         int count = Math.min(infoRows.size(), statRows.size());
+        List<HitterRecordEntity> hitterEntities = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             ElementHandle infoRow = infoRows.get(i);
             ElementHandle statRow = statRows.get(i);
 
-            String order = infoRow.querySelector("td").innerText().trim();
+            var turn = Short.parseShort(infoRow.querySelector("td").innerText().trim());
 
             ElementHandle nameCell = infoRow.querySelector("td.name");
             String name = "", position = "";
@@ -326,34 +335,49 @@ public class CrawServiceImpl implements CrawService {
             }
 
             List<ElementHandle> stats = statRow.querySelectorAll("td");
-            int ab = Integer.parseInt(stats.get(0).innerText());
-            int run = Integer.parseInt(stats.get(1).innerText());
-            int hit = Integer.parseInt(stats.get(2).innerText());
-            int hr = Integer.parseInt(stats.get(3).innerText());
-            int rbi = Integer.parseInt(stats.get(4).innerText());
-            int bbHbp = Integer.parseInt(stats.get(5).innerText());
-            int so = Integer.parseInt(stats.get(6).innerText());
-            int sb = Integer.parseInt(stats.get(7).innerText());
-            int cs = Integer.parseInt(stats.get(8).innerText());
+            var hitCount = Short.parseShort(stats.get(0).innerText());
+            var score = Short.parseShort(stats.get(1).innerText());
+            var hit = Short.parseShort(stats.get(2).innerText());
+            var homeRun = Short.parseShort(stats.get(3).innerText());
+            var hitScore = Short.parseShort(stats.get(4).innerText());
+            var ballFour = Short.parseShort(stats.get(5).innerText());
+            var strikeOut = Short.parseShort(stats.get(6).innerText());
 
-            System.out.printf("[%s번] %s %s → 타수: %d, 득점: %d, 안타: %d, 홈런: %d, 타점: %d, 4사구: %d, 삼진: %d, 도루: %d, 도루실패: %d\n",
-                    order, name, position, ab, run, hit, hr, rbi, bbHbp, so, sb, cs);
+            hitterEntities.add(new HitterRecordEntity(
+                    turn,
+                    name,
+                    position,
+                    hitCount,
+                    score,
+                    hit,
+                    homeRun,
+                    hitScore,
+                    ballFour,
+                    strikeOut,
+                    gameMatchEntity,
+                    year,
+                    isHome
+            ));
         }
+
+        return hitterEntities;
     }
 
-    private static void scrapPitcherTable(Page page) {
+    private static List<PitcherRecordEntity> scrapPitcherTable(Page page, Boolean isHome, String year, GameMatchEntity gameMatchEntity) {
         List<ElementHandle> infoRows = page.querySelectorAll("#PitcherRank table.tbl-new.fixed tbody tr");
         List<ElementHandle> statRows = page.querySelectorAll("#PitcherRank .scroll-box table.tbl-new tbody tr");
 
         int count = Math.min(infoRows.size(), statRows.size());
 
+        List<PitcherRecordEntity> pitcherEntities = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             ElementHandle infoRow = infoRows.get(i);
             ElementHandle statRow = statRows.get(i);
 
-            String order = infoRow.querySelector("td").innerText().trim();
+            var turn = Short.valueOf(infoRow.querySelector("td").innerText().trim());
             ElementHandle nameCell = infoRow.querySelector("td.name");
-            String name = "", position = "";
+            String name = "";
+            String position = "";
             if (nameCell != null) {
                 ElementHandle p = nameCell.querySelector("p");
                 ElementHandle span = nameCell.querySelector("span");
@@ -362,16 +386,31 @@ public class CrawServiceImpl implements CrawService {
             }
 
             List<ElementHandle> stats = statRow.querySelectorAll("td");
-            String inning = stats.get(0).innerText();
-            int pitching = Integer.parseInt(stats.get(1).innerText());
-            int hit = Integer.parseInt(stats.get(4).innerText());
-            int homeRun = Integer.parseInt(stats.get(5).innerText());
-            int ballFour = Integer.parseInt(stats.get(6).innerText());
-            int strikeOut = Integer.parseInt(stats.get(7).innerText());
-            int score = Integer.parseInt(stats.get(8).innerText());
+            var inning = stats.get(0).innerText();
+            var pitching = Short.parseShort(stats.get(1).innerText());
+            var hit = Short.parseShort(stats.get(4).innerText());
+            var homeRun = Short.parseShort(stats.get(5).innerText());
+            var ballFour = Short.parseShort(stats.get(6).innerText());
+            var strikeOut = Short.parseShort(stats.get(7).innerText());
+            var score = Short.parseShort(stats.get(8).innerText());
 
-            System.out.printf("[%s번] %s %s → 이닝: %s, 투구수: %d, 피안타: %d, 피홈런: %d, 4사구: %d, 삼진: %d, 실점: %d\n",
-                    order, name, position, inning, pitching, hit, homeRun, ballFour, strikeOut, score);
+            pitcherEntities.add(new PitcherRecordEntity(
+                    turn,
+                    name,
+                    position,
+                    inning,
+                    pitching,
+                    ballFour,
+                    strikeOut,
+                    hit,
+                    homeRun,
+                    score,
+                    gameMatchEntity,
+                    year,
+                    isHome
+            ));
         }
+
+        return pitcherEntities;
     }
 }

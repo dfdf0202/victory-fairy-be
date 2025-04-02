@@ -16,9 +16,9 @@ public class BeanConfig {
         Playwright playwright = Playwright.create(); // Playwright 자체는 여기서 닫아줘야 함
         return playwright.chromium().launch(
                 new BrowserType.LaunchOptions()
-                        .setHeadless(false) // 디버깅 : false
+                        .setHeadless(true) // 디버깅 : false
                         .setSlowMo(50)
-                        .setExecutablePath(Paths.get("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")) // 디버깅
+                        //.setExecutablePath(Paths.get("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")) // 디버깅
         );
     }
 
