@@ -17,6 +17,11 @@ public class GameMatchEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private MatchEnum.MatchType type;
 
+    @Column
+    @Comment("시리즈 타입")
+    @Enumerated(EnumType.STRING)
+    private MatchEnum.SeriesType series;
+
     @Comment("시즌")
     private String season;
 
@@ -66,10 +71,11 @@ public class GameMatchEntity extends BaseEntity {
     public GameMatchEntity() {
     }
 
-    public GameMatchEntity(String id, String sYear, MatchEnum.MatchType matchType, LocalDateTime matchAt, TeamEntity awayTeamEntity, String awayNm, Short awayScore, TeamEntity homeTeamEntity, String homeNm, Short homeScore, MatchEnum.MatchStatus status, String stadium, String reason) {
+    public GameMatchEntity(String id, String sYear, MatchEnum.MatchType matchType, MatchEnum.SeriesType seriesType, LocalDateTime matchAt, TeamEntity awayTeamEntity, String awayNm, Short awayScore, TeamEntity homeTeamEntity, String homeNm, Short homeScore, MatchEnum.MatchStatus status, String stadium, String reason) {
         this.id = id;
         this.season = sYear;
         this.type = matchType;
+        this.series = seriesType;
         this.matchAt = matchAt;
         this.awayTeamEntity = awayTeamEntity;
         this.awayNm = awayNm;
@@ -80,5 +86,61 @@ public class GameMatchEntity extends BaseEntity {
         this.status = status;
         this.stadium = stadium;
         this.reason = reason;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public MatchEnum.MatchType getType() {
+        return type;
+    }
+
+    public MatchEnum.SeriesType getSeries() {
+        return series;
+    }
+
+    public String getSeason() {
+        return season;
+    }
+
+    public LocalDateTime getMatchAt() {
+        return matchAt;
+    }
+
+    public TeamEntity getAwayTeamEntity() {
+        return awayTeamEntity;
+    }
+
+    public String getAwayNm() {
+        return awayNm;
+    }
+
+    public Short getAwayScore() {
+        return awayScore;
+    }
+
+    public TeamEntity getHomeTeamEntity() {
+        return homeTeamEntity;
+    }
+
+    public String getHomeNm() {
+        return homeNm;
+    }
+
+    public Short getHomeScore() {
+        return homeScore;
+    }
+
+    public String getStadium() {
+        return stadium;
+    }
+
+    public MatchEnum.MatchStatus getStatus() {
+        return status;
+    }
+
+    public String getReason() {
+        return reason;
     }
 }

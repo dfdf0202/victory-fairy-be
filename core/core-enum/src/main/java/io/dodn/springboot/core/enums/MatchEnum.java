@@ -26,6 +26,33 @@ public interface MatchEnum {
         }
     }
 
+    enum SeriesType {
+        EXHIBITION("시범경기", "1"),
+        REGULAR("정규시즌", "0"),
+        WILDCARD("와일드카드", "4"),
+        TIEBREAKER("정규시즌", "6"),
+        SEMI_PLAYOFF("준플레이오프", "3"),
+        PLAYOFF("플레이오프", "5"),
+        KOREA("한국시리즈", "7")
+        ;
+
+        private String desc;
+        private String value;
+
+        SeriesType(String desc, String value) {
+            this.desc = desc;
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public String getDesc() {
+            return desc;
+        }
+    }
+
     enum MatchStatus {
         READY("예정"),
         END("종료"),

@@ -20,13 +20,12 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class CrawServiceImpl implements CrawService {
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
-
     private final Browser browser;
 
     private final TeamEntityRepository teamEntityRepository;
@@ -165,10 +164,18 @@ public class CrawServiceImpl implements CrawService {
                             }
                         }
 
+                        MatchEnum.SeriesType seriesType = switch (matchType) {
+                            case EXHIBITION -> MatchEnum.SeriesType.EXHIBITION;
+                            case REGULAR -> MatchEnum.SeriesType.REGULAR;
+                            case TIEBREAKER -> MatchEnum.SeriesType.TIEBREAKER;
+                            case POST -> null;
+                        };
+
                         GameMatchEntity gameMatch = new GameMatchEntity(
                                 matchId
                                 ,sYear
                                 ,matchType
+                                ,seriesType
                                 ,matchDateTime
                                 ,awayEntity
                                 ,away
@@ -198,6 +205,60 @@ public class CrawServiceImpl implements CrawService {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void crawMatchDetail(String sYear) {
+        var matches = gameMatchEntityRepository.findBySeason(sYear).stream()
+                .sorted(Comparator.comparing(GameMatchEntity :: getMatchAt))
+                .toList();
+
+
+
+        if (matches.isEmpty()) {
+            // TODO : 공통 Exception 생성 후 처리
+        }
+
+        try (Playwright playwright = Playwright.create()) {
+
+            Page page = browser.newPage();
+            matches.stream()
+            .filter(match -> !MatchEnum.MatchStatus.CANCELED.equals(match.getStatus()))
+            .forEach(match -> {
+                page.navigate("https://m.koreabaseball.com/Kbo/Live/Record.aspx?p_le_id=1&p_sr_id=" + match.getSeries().getValue() + "&p_g_id=" + match.getId());
+
+                page.waitForSelector("#HitterRank table tbody tr"); // 타자
+                page.waitForSelector("#PitcherRank table tbody tr"); // 투수
+
+                System.out.println("======== 경기 id ========");
+                System.out.println(match.getId());
+                System.out.println("======== 🟥 홈팀 타자 기록 ========");
+                this.scrapeHitterTable(page);
+
+                System.out.println("======== 🟥 홈팀 투수 기록 ========");
+                page.waitForTimeout(500);             // ✅ 안정적 로딩 대기
+                this.scrapPitcherTable(page);
+
+                // 탭 클릭해서 원정팀으로 전환
+                page.click("#liveRecordSubTabB");
+                page.waitForTimeout(1000); // 탭 전환 후 데이터 로딩 기다림
+                page.waitForSelector("#HitterRank");
+
+                System.out.println("\n======== 🟦 원정팀 타자 기록 ========");
+                this.scrapeHitterTable(page);
+                System.out.println("\n======== 🟦 원정팀 투수 기록 ========");
+                page.waitForSelector("#PitcherRank"); // ✅ 추가
+                page.waitForTimeout(500);             // ✅ 추가
+                this.scrapPitcherTable(page);
+
+            });
+
+            browser.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     private LocalDateTime parseDateTime(String sYear, String dateStr, String timeStr) {
@@ -242,5 +303,75 @@ public class CrawServiceImpl implements CrawService {
         }
 
         return stadium;
+    }
+
+    private static void scrapeHitterTable(Page page) {
+        List<ElementHandle> infoRows = page.querySelectorAll("#HitterRank table.tbl-new.fixed tbody tr");
+        List<ElementHandle> statRows = page.querySelectorAll("#HitterRank .scroll-box table.tbl-new tbody tr");
+
+        int count = Math.min(infoRows.size(), statRows.size());
+        for (int i = 0; i < count; i++) {
+            ElementHandle infoRow = infoRows.get(i);
+            ElementHandle statRow = statRows.get(i);
+
+            String order = infoRow.querySelector("td").innerText().trim();
+
+            ElementHandle nameCell = infoRow.querySelector("td.name");
+            String name = "", position = "";
+            if (nameCell != null) {
+                ElementHandle p = nameCell.querySelector("p");
+                ElementHandle span = nameCell.querySelector("span");
+                name = (p != null) ? p.innerText().trim() : "";
+                position = (span != null) ? span.innerText().trim() : "";
+            }
+
+            List<ElementHandle> stats = statRow.querySelectorAll("td");
+            int ab = Integer.parseInt(stats.get(0).innerText());
+            int run = Integer.parseInt(stats.get(1).innerText());
+            int hit = Integer.parseInt(stats.get(2).innerText());
+            int hr = Integer.parseInt(stats.get(3).innerText());
+            int rbi = Integer.parseInt(stats.get(4).innerText());
+            int bbHbp = Integer.parseInt(stats.get(5).innerText());
+            int so = Integer.parseInt(stats.get(6).innerText());
+            int sb = Integer.parseInt(stats.get(7).innerText());
+            int cs = Integer.parseInt(stats.get(8).innerText());
+
+            System.out.printf("[%s번] %s %s → 타수: %d, 득점: %d, 안타: %d, 홈런: %d, 타점: %d, 4사구: %d, 삼진: %d, 도루: %d, 도루실패: %d\n",
+                    order, name, position, ab, run, hit, hr, rbi, bbHbp, so, sb, cs);
+        }
+    }
+
+    private static void scrapPitcherTable(Page page) {
+        List<ElementHandle> infoRows = page.querySelectorAll("#PitcherRank table.tbl-new.fixed tbody tr");
+        List<ElementHandle> statRows = page.querySelectorAll("#PitcherRank .scroll-box table.tbl-new tbody tr");
+
+        int count = Math.min(infoRows.size(), statRows.size());
+
+        for (int i = 0; i < count; i++) {
+            ElementHandle infoRow = infoRows.get(i);
+            ElementHandle statRow = statRows.get(i);
+
+            String order = infoRow.querySelector("td").innerText().trim();
+            ElementHandle nameCell = infoRow.querySelector("td.name");
+            String name = "", position = "";
+            if (nameCell != null) {
+                ElementHandle p = nameCell.querySelector("p");
+                ElementHandle span = nameCell.querySelector("span");
+                name = (p != null) ? p.innerText().trim() : "";
+                position = (span != null) ? span.innerText().trim() : "";
+            }
+
+            List<ElementHandle> stats = statRow.querySelectorAll("td");
+            String inning = stats.get(0).innerText();
+            int pitching = Integer.parseInt(stats.get(1).innerText());
+            int hit = Integer.parseInt(stats.get(4).innerText());
+            int homeRun = Integer.parseInt(stats.get(5).innerText());
+            int ballFour = Integer.parseInt(stats.get(6).innerText());
+            int strikeOut = Integer.parseInt(stats.get(7).innerText());
+            int score = Integer.parseInt(stats.get(8).innerText());
+
+            System.out.printf("[%s번] %s %s → 이닝: %s, 투구수: %d, 피안타: %d, 피홈런: %d, 4사구: %d, 삼진: %d, 실점: %d\n",
+                    order, name, position, inning, pitching, hit, homeRun, ballFour, strikeOut, score);
+        }
     }
 }
