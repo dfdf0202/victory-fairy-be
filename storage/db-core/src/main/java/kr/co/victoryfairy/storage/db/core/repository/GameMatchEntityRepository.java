@@ -3,6 +3,7 @@ package kr.co.victoryfairy.storage.db.core.repository;
 import kr.co.victoryfairy.storage.db.core.entity.GameMatchEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface GameMatchEntityRepository extends JpaRepository<GameMatchEntity, String> {
@@ -12,4 +13,11 @@ public interface GameMatchEntityRepository extends JpaRepository<GameMatchEntity
      * @return
      */
     List<GameMatchEntity> findBySeason(String sYear);
+
+    /**
+     *
+     * @param matchAt
+     * @return
+     */
+    List<GameMatchEntity> findByMatchAt(LocalDateTime matchAt);
 }

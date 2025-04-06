@@ -55,6 +55,7 @@ public interface MatchEnum {
 
     enum MatchStatus {
         READY("예정"),
+        PROGRESS("진행중"),
         END("종료"),
         CANCELED("취소")
         ;

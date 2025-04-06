@@ -14,6 +14,9 @@ import java.time.LocalDateTime;
 @MappedSuperclass
 public abstract class BaseEntity {
 
+    @Column(nullable = false, columnDefinition = "bit(1) DEFAULT b'1'")
+    private Boolean isUse = true;
+
     @CreationTimestamp
     @Column
     private LocalDateTime createdAt = LocalDateTime.now();

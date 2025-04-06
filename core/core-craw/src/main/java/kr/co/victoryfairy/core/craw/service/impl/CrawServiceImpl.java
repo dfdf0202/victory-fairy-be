@@ -15,8 +15,6 @@ import kr.co.victoryfairy.storage.db.core.repository.GameMatchEntityRepository;
 import kr.co.victoryfairy.storage.db.core.repository.HitterRecordEntityRepository;
 import kr.co.victoryfairy.storage.db.core.repository.PitcherRecordEntityRepository;
 import kr.co.victoryfairy.storage.db.core.repository.TeamEntityRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;

@@ -68,6 +68,17 @@ public class GameMatchEntity extends BaseEntity {
     @Comment("사유")
     private String reason;
 
+    public void updateMatchStatus(Short awayScore, Short homeScore, MatchEnum.MatchStatus status) {
+        this.awayScore = awayScore;
+        this.homeScore = homeScore;
+        this.status = status;
+    }
+
+    public void cancelMatchStatus(String reason, MatchEnum.MatchStatus status) {
+        this.reason = reason;
+        this.status = status;
+    }
+
     public GameMatchEntity() {
     }
 
