@@ -5,14 +5,12 @@ import com.microsoft.playwright.ElementHandle;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import io.dodn.springboot.core.enums.MatchEnum;
-import io.dodn.springboot.core.enums.TeamEnum;
 import kr.co.victoryfairy.core.service.BatchService;
-import kr.co.victoryfairy.storage.db.core.entity.GameMatchEntity;
 import kr.co.victoryfairy.storage.db.core.repository.GameMatchEntityRepository;
+import kr.co.victoryfairy.support.handler.RedisHandler;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
-import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,10 +21,12 @@ import java.util.regex.Pattern;
 public class BatchServiceImpl implements BatchService {
     private final Browser browser;
     private final GameMatchEntityRepository gameMatchEntityRepository;
+    private final RedisHandler redisHandler;
 
-    public BatchServiceImpl(Browser browser, GameMatchEntityRepository gameMatchEntityRepository) {
+    public BatchServiceImpl(Browser browser, GameMatchEntityRepository gameMatchEntityRepository, RedisHandler redisHandler) {
         this.browser = browser;
         this.gameMatchEntityRepository = gameMatchEntityRepository;
+        this.redisHandler = redisHandler;
     }
 
     @Override
@@ -36,18 +36,24 @@ public class BatchServiceImpl implements BatchService {
             Page page = browser.newPage();
             page.navigate("https://m.koreabaseball.com/Kbo/Schedule.aspx");
 
+            page.evaluate("getGameDateList('20250406')");
             page.waitForSelector("ul#now");
             List<ElementHandle> gameElements = page.querySelectorAll("ul#now > li.list");
 
             String dateText = page.querySelector("#lblGameDate").innerText();
             String formattedDate = dateText.replaceAll("[^0-9]", "");
 
-            Map<String, Integer> matchCountMap = new HashMap<>();
-            for (ElementHandle game : gameElements) {
+            if (gameElements.isEmpty()) return;
 
+            for (ElementHandle game : gameElements) {
                 String classAttr = game.getAttribute("class");
                 String statusClass = classAttr.replace("list", "").trim();
 
+                // 경기 예정인 경우 제외
+                if (!StringUtils.hasText(statusClass)) continue;
+
+
+                // 상태, 취소 사유 처리
                 var matchStatus = MatchEnum.MatchStatus.PROGRESS;
                 var reason = "";
                 if ("end".equals(statusClass)) {
@@ -59,6 +65,7 @@ public class BatchServiceImpl implements BatchService {
                     matchStatus = MatchEnum.MatchStatus.PROGRESS;
                 }
 
+                // 더블헤더 여부 처리
                 var matchOrder = 0;
                 ElementHandle dhSpan = game.querySelector("span.dh");
                 if (dhSpan != null) {
@@ -89,18 +96,42 @@ public class BatchServiceImpl implements BatchService {
                 var id = formattedDate + awayTeamName + homeTeamName + matchOrder;
                 var matchEntity = gameMatchEntityRepository.findById(id).orElse(null);
 
+
+                // Redis 저장 처리
+                Map<String, String> map = new HashMap<>();
+                map.put("awayImage", awaySrc);
+                map.put("awayScore", awayScore);
+                map.put("homeImage", homeSrc);
+                map.put("homeScore", homeScore);
+                redisHandler.setMap(id, map);
+
                 if (matchEntity == null) return;
 
-                if (!matchEntity.getStatus().equals(matchStatus)) {
-                    switch (matchStatus) {
-                        case END -> matchEntity.updateMatchStatus(Short.parseShort(awayScore), Short.parseShort(homeScore), matchStatus);
-                        case CANCELED -> matchEntity.cancelMatchStatus(reason, matchStatus);
-                        default -> {
-                            return;
-                        }
+                // 진행 예정인 대회 진행중 처리
+                if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.READY)) {
+
+                    if (matchStatus.equals(MatchEnum.MatchStatus.CANCELED)) {
+                        matchEntity.cancelMatchStatus(reason, matchStatus);
+                    } else {
+                        matchEntity.updateMatchStatus(matchStatus);
                     }
                     gameMatchEntityRepository.save(matchEntity);
-                    return;
+                }
+
+                // 진행 중인 경기의 최종 상태 변경
+                if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.PROGRESS)) {
+                    switch (matchStatus) {
+                        case END -> {
+                            matchEntity.updateMatchStatusAndScore(Short.parseShort(awayScore), Short.parseShort(homeScore), matchStatus);
+                            gameMatchEntityRepository.save(matchEntity);
+                            redisHandler.deleteMap(id);
+                        }
+                        case CANCELED -> {
+                            matchEntity.cancelMatchStatus(reason, matchStatus);
+                            gameMatchEntityRepository.save(matchEntity);
+                            redisHandler.deleteMap(id);
+                        }
+                    }
                 }
             }
 
