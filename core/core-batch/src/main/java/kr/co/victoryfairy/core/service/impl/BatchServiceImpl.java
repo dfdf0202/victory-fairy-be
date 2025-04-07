@@ -8,6 +8,8 @@ import io.dodn.springboot.core.enums.MatchEnum;
 import kr.co.victoryfairy.core.service.BatchService;
 import kr.co.victoryfairy.storage.db.core.repository.GameMatchEntityRepository;
 import kr.co.victoryfairy.support.handler.RedisHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -19,6 +21,7 @@ import java.util.regex.Pattern;
 
 @Service
 public class BatchServiceImpl implements BatchService {
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final Browser browser;
     private final GameMatchEntityRepository gameMatchEntityRepository;
     private final RedisHandler redisHandler;
@@ -31,12 +34,11 @@ public class BatchServiceImpl implements BatchService {
 
     @Override
     public void batchScore() {
-
+        logger.info("========== Batch  Start ==========");
         try (Playwright playwright = Playwright.create()) {
             Page page = browser.newPage();
             page.navigate("https://m.koreabaseball.com/Kbo/Schedule.aspx");
 
-            page.evaluate("getGameDateList('20250406')");
             page.waitForSelector("ul#now");
             List<ElementHandle> gameElements = page.querySelectorAll("ul#now > li.list");
 
