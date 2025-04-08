@@ -1,9 +1,6 @@
 package kr.co.victoryfairy.core.service.impl;
 
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.ElementHandle;
-import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.*;
 import io.dodn.springboot.core.enums.MatchEnum;
 import kr.co.victoryfairy.core.service.BatchService;
 import kr.co.victoryfairy.storage.db.core.repository.GameMatchEntityRepository;
@@ -13,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +33,7 @@ public class BatchServiceImpl implements BatchService {
     @Override
     public void batchScore() {
         logger.info("========== Batch  Start ==========");
+
         try (Playwright playwright = Playwright.create()) {
             Page page = browser.newPage();
             page.navigate("https://m.koreabaseball.com/Kbo/Schedule.aspx");
@@ -100,12 +99,16 @@ public class BatchServiceImpl implements BatchService {
 
 
                 // Redis 저장 처리
-                Map<String, String> map = new HashMap<>();
-                map.put("awayImage", awaySrc);
-                map.put("awayScore", awayScore);
-                map.put("homeImage", homeSrc);
-                map.put("homeScore", homeScore);
-                redisHandler.setMap(id, map);
+                if (matchStatus.equals(MatchEnum.MatchStatus.PROGRESS)) {
+                    Map<String, String> map = new HashMap<>();
+                    map.put("awayImage", awaySrc);
+                    map.put("awayScore", awayScore);
+                    map.put("homeImage", homeSrc);
+                    map.put("homeScore", homeScore);
+                    redisHandler.setMap(id, map);
+                } else {
+                    redisHandler.deleteMap(id);
+                }
 
                 if (matchEntity == null) return;
 
@@ -119,7 +122,6 @@ public class BatchServiceImpl implements BatchService {
                     }
                     gameMatchEntityRepository.save(matchEntity);
                 }
-
                 // 진행 중인 경기의 최종 상태 변경
                 if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.PROGRESS)) {
                     switch (matchStatus) {
@@ -137,10 +139,10 @@ public class BatchServiceImpl implements BatchService {
                 }
             }
 
-            page.close();
+            page.close(); // 안전하게 닫기
+            browser.close();
         } catch (Exception e) {
             e.printStackTrace();
-            browser.close();
         }
     }
 }
