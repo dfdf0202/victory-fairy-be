@@ -1,6 +1,9 @@
 package kr.co.victoryfairy.core.service.impl;
 
-import com.microsoft.playwright.*;
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.ElementHandle;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Playwright;
 import io.dodn.springboot.core.enums.MatchEnum;
 import kr.co.victoryfairy.core.service.BatchService;
 import kr.co.victoryfairy.storage.db.core.repository.GameMatchEntityRepository;
@@ -10,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,12 +22,10 @@ import java.util.regex.Pattern;
 @Service
 public class BatchServiceImpl implements BatchService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
-    private final Browser browser;
     private final GameMatchEntityRepository gameMatchEntityRepository;
     private final RedisHandler redisHandler;
 
-    public BatchServiceImpl(Browser browser, GameMatchEntityRepository gameMatchEntityRepository, RedisHandler redisHandler) {
-        this.browser = browser;
+    public BatchServiceImpl(GameMatchEntityRepository gameMatchEntityRepository, RedisHandler redisHandler) {
         this.gameMatchEntityRepository = gameMatchEntityRepository;
         this.redisHandler = redisHandler;
     }
@@ -35,6 +35,7 @@ public class BatchServiceImpl implements BatchService {
         logger.info("========== Batch  Start ==========");
 
         try (Playwright playwright = Playwright.create()) {
+            Browser browser = playwright.chromium().launch();
             Page page = browser.newPage();
             page.navigate("https://m.koreabaseball.com/Kbo/Schedule.aspx");
 

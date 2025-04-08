@@ -28,16 +28,13 @@ import java.util.stream.Collectors;
 
 @Service
 public class CrawServiceImpl implements CrawService {
-    private final Browser browser;
-
     private final TeamEntityRepository teamEntityRepository;
     private final GameMatchEntityRepository gameMatchEntityRepository;
     private final HitterRecordEntityRepository hitterRecordEntityRepository;
     private final PitcherRecordEntityRepository pitcherRecordEntityRepository;
 
-    public CrawServiceImpl(Browser browser, TeamEntityRepository teamEntityRepository, GameMatchEntityRepository gameMatchEntityRepository,
+    public CrawServiceImpl(TeamEntityRepository teamEntityRepository, GameMatchEntityRepository gameMatchEntityRepository,
                            HitterRecordEntityRepository hitterRecordEntityRepository, PitcherRecordEntityRepository pitcherRecordEntityRepository) {
-        this.browser = browser;
         this.teamEntityRepository = teamEntityRepository;
         this.gameMatchEntityRepository = gameMatchEntityRepository;
         this.hitterRecordEntityRepository = hitterRecordEntityRepository;
@@ -48,7 +45,7 @@ public class CrawServiceImpl implements CrawService {
     @Transactional
     public void crawMatchList(String sYear, String sMonth) {
         try (Playwright playwright = Playwright.create()) {
-
+            Browser browser = playwright.chromium().launch();
             Page page = browser.newPage();
             page.navigate("https://www.koreabaseball.com/Schedule/Schedule.aspx");
 
@@ -231,6 +228,7 @@ public class CrawServiceImpl implements CrawService {
 
         try (Playwright playwright = Playwright.create()) {
 
+            Browser browser = playwright.chromium().launch();
             Page page = browser.newPage();
             matches.forEach(match -> {
                 page.navigate("https://m.koreabaseball.com/Kbo/Live/Record.aspx?p_le_id=1&p_sr_id=" + match.getSeries().getValue() + "&p_g_id=" + match.getId());
