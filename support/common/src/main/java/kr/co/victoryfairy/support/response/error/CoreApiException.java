@@ -1,4 +1,4 @@
-package kr.co.victoryfairy.core.craw.support.error;
+package kr.co.victoryfairy.support.response.error;
 
 public class CoreApiException extends RuntimeException {
 

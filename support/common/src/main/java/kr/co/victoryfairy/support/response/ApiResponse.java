@@ -1,7 +1,7 @@
-package kr.co.victoryfairy.core.craw.support.response;
+package kr.co.victoryfairy.support.response;
 
-import kr.co.victoryfairy.core.craw.support.error.ErrorMessage;
-import kr.co.victoryfairy.core.craw.support.error.ErrorType;
+import kr.co.victoryfairy.support.response.error.ErrorMessage;
+import kr.co.victoryfairy.support.response.error.ErrorType;
 
 public class ApiResponse<S> {
 
