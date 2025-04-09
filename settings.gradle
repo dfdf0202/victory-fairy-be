@@ -6,6 +6,9 @@ pluginManagement {
         id 'io.spring.javaformat' version "${springJavaFormatVersion}"
     }
 }
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
+}
 
 rootProject.name = 'BE'
 
@@ -19,3 +22,5 @@ include 'tests:api-docs'
 include 'support:logging'
 include 'support:common'
 include 'clients:client-example'
+
+

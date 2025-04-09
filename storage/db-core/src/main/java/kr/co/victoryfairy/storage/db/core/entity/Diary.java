@@ -19,7 +19,7 @@ public class Diary {
 
     @ManyToOne
     @JoinColumn(name = "member_id")
-    private Member member;                  // 회원 식별자
+    private MemberEntity member;                  // 회원 식별자
 
     @ManyToOne
     @JoinColumn(name = "game_match_id")

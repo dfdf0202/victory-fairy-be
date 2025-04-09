@@ -1,4 +1,4 @@
-package kr.co.victoryfairy.support.response.error;
+package kr.co.victoryfairy.core.craw.support.response.error;
 
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.http.HttpStatus;

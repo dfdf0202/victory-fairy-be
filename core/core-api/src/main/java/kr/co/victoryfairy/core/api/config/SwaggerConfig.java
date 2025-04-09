@@ -1,4 +1,4 @@
-package kr.co.victoryfairy.core.craw.config;
+package kr.co.victoryfairy.core.api.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -13,7 +13,7 @@ import java.util.HashMap;
 @Configuration
 public class SwaggerConfig {
 
-    private static final String TITLE = "VictoryFairy Support API Docs";
+    private static final String TITLE = "VictoryFairy API Docs";
     private static final String APP_START_TIME = DateUtils.now(DateUtils.Format.DATETIME_FORMAT_HYPEN.getPattern());
 
     @Bean

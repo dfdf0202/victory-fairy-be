@@ -4,11 +4,15 @@ jar.enabled = false
 dependencies {
     implementation project(":core:core-enum")
     implementation project(":support:logging")
+    implementation project(":support:common")
     implementation project(":storage:db-core")
 
     testImplementation project(":tests:api-docs")
     
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+
 }
