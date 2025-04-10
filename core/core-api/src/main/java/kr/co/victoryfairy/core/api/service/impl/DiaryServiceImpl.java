@@ -2,8 +2,6 @@ package kr.co.victoryfairy.core.api.service.impl;
 
 import kr.co.victoryfairy.core.api.domain.DiaryDomain;
 import kr.co.victoryfairy.core.api.service.DiaryService;
-import kr.co.victoryfairy.storage.db.core.dto.PartnerDto;
-import kr.co.victoryfairy.storage.db.core.dto.SeatUseHistoryDto;
 import kr.co.victoryfairy.storage.db.core.entity.*;
 import kr.co.victoryfairy.storage.db.core.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -72,11 +70,11 @@ public class DiaryServiceImpl implements DiaryService {
         // 선택 입력값인 함께한 사람 리스트가 비어있지 않는 경우
         if (!diaryDto.partnerList().isEmpty()) {
             List<Partner> partnerList = new ArrayList<>();
-            for (PartnerDto partnerDto : diaryDto.partnerList()) {
+            for (DiaryDomain.PartnerDto partnerDto : diaryDto.partnerList()) {
                 Partner partner = Partner.builder()
                         .diary(savedDiary)
-                        .name(partnerDto.getName())
-                        .teamName(partnerDto.getTeamName())
+                        .name(partnerDto.name())
+                        .teamName(partnerDto.teamName())
                         .build();
                 partnerList.add(partner);
 
@@ -86,26 +84,26 @@ public class DiaryServiceImpl implements DiaryService {
         }
 
         // 파라미터로 받은 좌석
-        SeatUseHistoryDto diaryDtoSeat = diaryDto.seat();
+        DiaryDomain.SeatUseHistoryDto diaryDtoSeat = diaryDto.seat();
 
         // 선택 입력값인 좌석이 비어있지 않는 경우
         if (diaryDtoSeat != null) {
             // 좌석 조회
-            Seat seat = seatRepository.findById(diaryDtoSeat.getSeatId()).orElseThrow();
+            Seat seat = seatRepository.findById(diaryDtoSeat.seatId()).orElseThrow();
 
             // 좌석 이용 내역 저장
             SeatUseHistory seatUseHistory = SeatUseHistory.builder()
                     .diary(savedDiary)
                     .seat(seat)
-                    .seatBlock(diaryDtoSeat.getSeatBlock())
-                    .seatRow(diaryDtoSeat.getSeatRow())
-                    .seatNumber(diaryDtoSeat.getSeatNumber())
+                    .seatBlock(diaryDtoSeat.seatBlock())
+                    .seatRow(diaryDtoSeat.seatRow())
+                    .seatNumber(diaryDtoSeat.seatNumber())
                     .build();
             SeatUseHistory savedSeatUseHistory = seatUseHistoryRepository.save(seatUseHistory);
 
             // 좌석 리뷰 저장
             List<SeatReview> reviewList = new ArrayList<>();
-            for (String review : diaryDtoSeat.getSeatReview()) {
+            for (String review : diaryDtoSeat.seatReview()) {
                 SeatReview seatReview = SeatReview.builder()
                         .seatUseHistory(savedSeatUseHistory)
                         .seatReview(review)

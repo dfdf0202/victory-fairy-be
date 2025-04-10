@@ -1,8 +1,6 @@
 package kr.co.victoryfairy.core.api.domain;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import kr.co.victoryfairy.storage.db.core.dto.PartnerDto;
-import kr.co.victoryfairy.storage.db.core.dto.SeatUseHistoryDto;
 
 import java.util.List;
 
@@ -40,5 +38,30 @@ public interface DiaryDomain {
             List<String> moodList               // 기분 리스트
     ) {}
 
+    record PartnerDto(
+            @Schema(description = "함께한 사람 이름", example = "홍길동")
+            String name,
+
+            @Schema(description = "함께한 사람의 응원 팀", example = "키움")
+            String teamName
+    ) {}
+
+    record SeatUseHistoryDto(
+            @Schema(description = "좌석 식별자", example = "1")
+            Long seatId,           // 좌석 식별자
+
+            @Schema(description = "좌석 블록", example = "217")
+            String seatBlock,      // 좌석 블록
+
+            @Schema(description = "좌석 열", example = "16")
+            String seatRow,        // 좌석 열
+
+            @Schema(description = "좌석 번호", example = "240")
+            String seatNumber,     // 좌석 번호
+
+            @Schema(description = "좌석 리뷰", example = "[탁 트인 시야, 넓은 공간]")
+            List<String> seatReview // 좌석 리뷰
+    ) {
+    }
 
 }
