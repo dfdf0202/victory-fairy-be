@@ -1,7 +1,7 @@
-package kr.co.victoryfairy.diary.service.impl;
+package kr.co.victoryfairy.core.api.service.impl;
 
-import kr.co.victoryfairy.diary.service.DiaryService;
-import kr.co.victoryfairy.storage.db.core.dto.DiaryDto;
+import kr.co.victoryfairy.core.api.domain.DiaryDomain;
+import kr.co.victoryfairy.core.api.service.DiaryService;
 import kr.co.victoryfairy.storage.db.core.dto.PartnerDto;
 import kr.co.victoryfairy.storage.db.core.dto.SeatUseHistoryDto;
 import kr.co.victoryfairy.storage.db.core.entity.*;
@@ -26,23 +26,23 @@ public class DiaryServiceImpl implements DiaryService {
     private final GameMatchEntityRepository gameMatchRepository;
 
     // 일기 작성
-    public DiaryDto writeDiary(DiaryDto diaryDto){
+    public DiaryDomain.DiaryDto writeDiary(DiaryDomain.DiaryDto diaryDto){
         // 일기를 작성할 경기 조회
-        GameMatchEntity gameMatch = gameMatchRepository.findById(diaryDto.getGameMatchId())
+        GameMatchEntity gameMatch = gameMatchRepository.findById(diaryDto.gameMatchId())
                 .orElseThrow();
 
         // 일기 필수 입력값 저장
         Diary diary = Diary.builder()
-                .teamName(diaryDto.getTeamName())
-                .viewType(diaryDto.getViewType())
+                .teamName(diaryDto.teamName())
+                .viewType(diaryDto.viewType())
                 .gameMatch(gameMatch)
                 .build();
         Diary savedDiary = diaryRepository.save(diary);
 
         // 선택 입력값인 음식 리스트가 비어있지 않는 경우
-        if (!diaryDto.getFoodNameList().isEmpty()) {
+        if (!diaryDto.foodNameList().isEmpty()) {
             List<DiaryFood> foodList = new ArrayList<>();
-            for (String food : diaryDto.getFoodNameList()) {
+            for (String food : diaryDto.foodNameList()) {
                 DiaryFood diaryFood = DiaryFood.builder()
                         .diary(savedDiary)
                         .foodName(food)
@@ -55,9 +55,9 @@ public class DiaryServiceImpl implements DiaryService {
         }
 
         // 선택 입력값인 기분 리스트가 비어있지 않는 경우
-        if (!diaryDto.getMoodList().isEmpty()) {
+        if (!diaryDto.moodList().isEmpty()) {
             List<DiaryMood> moodList = new ArrayList<>();
-            for (String mood : diaryDto.getMoodList()) {
+            for (String mood : diaryDto.moodList()) {
                 DiaryMood diaryMood = DiaryMood.builder()
                         .diary(savedDiary)
                         .mood(mood)
@@ -70,9 +70,9 @@ public class DiaryServiceImpl implements DiaryService {
         }
 
         // 선택 입력값인 함께한 사람 리스트가 비어있지 않는 경우
-        if (!diaryDto.getPartnerList().isEmpty()) {
+        if (!diaryDto.partnerList().isEmpty()) {
             List<Partner> partnerList = new ArrayList<>();
-            for (PartnerDto partnerDto : diaryDto.getPartnerList()) {
+            for (PartnerDto partnerDto : diaryDto.partnerList()) {
                 Partner partner = Partner.builder()
                         .diary(savedDiary)
                         .name(partnerDto.getName())
@@ -86,7 +86,7 @@ public class DiaryServiceImpl implements DiaryService {
         }
 
         // 파라미터로 받은 좌석
-        SeatUseHistoryDto diaryDtoSeat = diaryDto.getSeat();
+        SeatUseHistoryDto diaryDtoSeat = diaryDto.seat();
 
         // 선택 입력값인 좌석이 비어있지 않는 경우
         if (diaryDtoSeat != null) {
@@ -115,6 +115,7 @@ public class DiaryServiceImpl implements DiaryService {
             seatReviewRepository.saveAll(reviewList);
 
         }
+
 
         return diaryDto;
     }
