@@ -11,6 +11,7 @@ import kr.co.victoryfairy.storage.db.core.repository.MemberEntityRepository;
 import kr.co.victoryfairy.storage.db.core.repository.MemberInfoEntityRepository;
 import kr.co.victoryfairy.support.utils.RequestUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -38,6 +39,7 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
+    @Transactional
     public MemberDomain.MemberLoginResponse login(MemberDomain.MemberLoginRequest request) {
         // TODO : 코드 정리 필요
         var service = oauthFactory.getService(request.snsType());
@@ -59,13 +61,13 @@ public class MemberServiceImpl implements MemberService {
                     .lastConnectAt(LocalDateTime.now())
                     .build();
             memberEntityRepository.save(memberEntity);            // 멤버 등록
-            MemberInfoEntity newMemberInfoEntity = MemberInfoEntity.builder()
+            memberInfoEntity = MemberInfoEntity.builder()
                     .memberEntity(memberEntity)
                     .snsId(memberSns.snsId())
                     .snsType(request.snsType())
                     .email(memberSns.email())
                     .build();
-            memberInfoEntityRepository.save(newMemberInfoEntity);    // 멤버 정보 등록
+            memberInfoEntityRepository.save(memberInfoEntity);    // 멤버 정보 등록
 
             var memberInfoDto = MemberDomain.MemberInfoDto.builder()
                     .snsType(request.snsType())
