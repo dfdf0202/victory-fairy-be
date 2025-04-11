@@ -29,10 +29,21 @@ public class CurlCommandErrorInterceptor implements HandlerInterceptor {
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+
+        String uri = request.getRequestURI();
+        if (uri.contains("/swagger") || uri.contains("/v3/api-docs")) {
+            return;
+        }
+
         if (response instanceof ContentCachingResponseWrapper && request instanceof ContentCachingRequestWrapper) {
             try {
                 ContentCachingRequestWrapper wrappedRequest = (ContentCachingRequestWrapper) request;
                 ContentCachingResponseWrapper wrappedResponse = (ContentCachingResponseWrapper) response;
+
+                String contentType = response.getContentType();
+                /*if (contentType == null || !contentType.contains("application/json")) {
+                    return;
+                }*/
 
                 String responseBody = this.getResponseBody(wrappedResponse);
                 if (this.isErrorResponse(responseBody)) {

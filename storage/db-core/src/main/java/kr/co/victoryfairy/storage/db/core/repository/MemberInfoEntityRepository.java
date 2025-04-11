@@ -10,4 +10,5 @@ public interface MemberInfoEntityRepository extends JpaRepository<MemberInfoEnti
 
     Optional<MemberInfoEntity> findBySnsTypeAndSnsId(MemberEnum.SnsType snsType, String snsId);
 
+    Optional<MemberInfoEntity> findByNickNm(String nickNm);
 }

@@ -1,5 +1,8 @@
 package kr.co.victoryfairy.core.api.config;
 
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -10,6 +13,12 @@ import org.springframework.context.annotation.Configuration;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 
+@SecurityScheme(
+        name = "accessToken",
+        type = SecuritySchemeType.APIKEY,
+        in = SecuritySchemeIn.HEADER,
+        paramName = "accessToken"
+)
 @Configuration
 public class SwaggerConfig {
 

@@ -2,8 +2,9 @@ package kr.co.victoryfairy.support.constant;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Setter;
 
-public interface MessageEnum {
+public interface  MessageEnum {
 
     @Getter
     @AllArgsConstructor
@@ -70,6 +71,18 @@ public interface MessageEnum {
         FAIL_NOT_FOUND_ENDPOINT("엔드포인트가 존재 하지 않습니다.","Endpoint does not exist."),
         FAIL_VALID_AVAILABLE("해당 데이터는 사용 할 수 없습니다.","That data is not available.");
 
+        private String descKr;
+        private String descEn;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    enum CheckNick implements EnumDescriptor {
+        AVAILABLE("사용 가능한 닉네임입니다.", "Available nickname."),
+        DUPLICATE("중복된 닉네임입니다.", "Duplicated nickname."),
+        NON_CHECK("중복 검사가 안된 닉네임입니다", "Non check nickname."),
+        POSSESSION("다른 사람이 선점한 닉네임입니다.", "Possession nickname."),
+        ;
         private String descKr;
         private String descEn;
     }

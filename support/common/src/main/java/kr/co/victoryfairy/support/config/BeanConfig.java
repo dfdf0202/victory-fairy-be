@@ -1,5 +1,8 @@
 package kr.co.victoryfairy.support.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.servlet.Filter;
 import kr.co.victoryfairy.support.webfilter.RequestResponseCachingFilter;
 import org.springframework.context.annotation.Bean;
@@ -17,9 +20,16 @@ public class BeanConfig {
         return new ForwardedHeaderFilter();
     }
 
-
     @Bean
     public Filter requestResponseCachingFilter() {
         return new RequestResponseCachingFilter();
+    }
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return mapper;
     }
 }

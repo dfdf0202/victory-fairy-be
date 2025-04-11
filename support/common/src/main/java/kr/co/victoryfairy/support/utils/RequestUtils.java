@@ -1,6 +1,7 @@
 package kr.co.victoryfairy.support.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import kr.co.victoryfairy.support.model.oauth.MemberAccount;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -27,7 +28,7 @@ public class RequestUtils {
      * 로그인 id (id (PK))
      * @return
      */
-    /*public static Long getId() {
+    public static Long getId() {
         ServletRequestAttributes requestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
 
         if (requestAttributes != null) {
@@ -43,5 +44,5 @@ public class RequestUtils {
             return account.getId();
         }
         return null;
-    }*/
+    }
 }

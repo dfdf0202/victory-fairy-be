@@ -2,6 +2,7 @@ package kr.co.victoryfairy.core.api.service.impl;
 
 import io.dodn.springboot.core.enums.MemberEnum;
 import kr.co.victoryfairy.core.api.domain.MemberDomain;
+import kr.co.victoryfairy.core.api.model.NickNameInfo;
 import kr.co.victoryfairy.core.api.service.MemberService;
 import kr.co.victoryfairy.core.api.service.oauth.JwtService;
 import kr.co.victoryfairy.core.api.service.oauth.OauthFactory;
@@ -9,33 +10,35 @@ import kr.co.victoryfairy.storage.db.core.entity.MemberEntity;
 import kr.co.victoryfairy.storage.db.core.entity.MemberInfoEntity;
 import kr.co.victoryfairy.storage.db.core.repository.MemberEntityRepository;
 import kr.co.victoryfairy.storage.db.core.repository.MemberInfoEntityRepository;
+import kr.co.victoryfairy.storage.db.core.repository.TeamEntityRepository;
+import kr.co.victoryfairy.support.constant.MessageEnum;
+import kr.co.victoryfairy.support.exception.CustomException;
+import kr.co.victoryfairy.support.handler.RedisHandler;
 import kr.co.victoryfairy.support.utils.RequestUtils;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Service
+@RequiredArgsConstructor
 public class MemberServiceImpl implements MemberService {
 
     private final OauthFactory oauthFactory;
     private final MemberEntityRepository memberEntityRepository;
     private final MemberInfoEntityRepository memberInfoEntityRepository;
+    private final TeamEntityRepository teamEntityRepository;
     private final JwtService jwtService;
-
-    public MemberServiceImpl(OauthFactory oauthFactory, MemberEntityRepository memberEntityRepository,
-                             MemberInfoEntityRepository memberInfoEntityRepository, JwtService jwtService) {
-        this.oauthFactory = oauthFactory;
-        this.memberEntityRepository = memberEntityRepository;
-        this.memberInfoEntityRepository = memberInfoEntityRepository;
-        this.jwtService = jwtService;
-    }
+    private final RedisHandler redisHandler;
 
     @Override
-    public String getOauthPath(MemberEnum.SnsType snsType) {
+    public MemberDomain.MemberOauthPathResponse getOauthPath(MemberEnum.SnsType snsType) {
         var service = oauthFactory.getService(snsType);
-        return service.initSnsAuthPath();
+        var response = service.initSnsAuthPath();
+        return new MemberDomain.MemberOauthPathResponse(response);
     }
 
     @Override
@@ -101,5 +104,109 @@ public class MemberServiceImpl implements MemberService {
         var memberInfo = new MemberDomain.MemberInfoResponse(request.snsType(), memberSns.snsId(), memberInfoDto.getIsNickNmAdded(), memberInfoDto.getIsTeamAdded());
         var memberLoginResponse = new MemberDomain.MemberLoginResponse(memberInfo, accessTokenDto.getAccessToken(), accessTokenDto.getRefreshToken());
         return memberLoginResponse;
+    }
+
+    @Override
+    public void updateTeam(MemberDomain.MemberTeamUpdateRequest request) {
+        var id = RequestUtils.getId();
+
+        var memberInfoEntity = memberInfoEntityRepository.findById(id)
+                .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        var teamEntity = teamEntityRepository.findById(request.teamId())
+                .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        memberInfoEntity = memberInfoEntity.toBuilder()
+                .teamEntity(teamEntity)
+                .build();
+
+        memberInfoEntityRepository.save(memberInfoEntity);
+    }
+
+    @Override
+    public MemberDomain.MemberCheckNickNameResponse checkNick() {
+        var id = RequestUtils.getId();
+        var myNick = redisHandler.getHashValue("memberNickNm", String.valueOf(id), NickNameInfo.class);
+
+        if (myNick == null) {
+            return new MemberDomain.MemberCheckNickNameResponse(null);
+        }
+
+        return new MemberDomain.MemberCheckNickNameResponse(myNick.getKey());
+    }
+
+    @Override
+    public MessageEnum.CheckNick checkNickNmDuplicate(String nickNm) {
+        var id = RequestUtils.getId();
+
+        // Redis 에 저장된 nickNm 이 있는지 체크
+        var existingNick = redisHandler.getHashValue("checkNick", nickNm, NickNameInfo.class);
+
+        if (existingNick != null) {
+            var now = LocalDateTime.now();
+            // 선점된지 72시간 이내의 nickNm 인지 체크
+            if (Duration.between(existingNick.getCreatedAt(), now).toHours() < 72) {
+                return MessageEnum.CheckNick.DUPLICATE;
+            }
+
+            // 72시간이 지난 경우 만료로 보고 삭제
+            redisHandler.deleteHashValue("checkNick", nickNm);
+            redisHandler.deleteHashValue("memberNickNm", String.valueOf(existingNick.getKey()));
+        }
+
+        // 이미 DB 에 저장된 닉네임인지 체크
+        if (memberInfoEntityRepository.findByNickNm(nickNm).isPresent()) {
+            return MessageEnum.CheckNick.DUPLICATE;
+        }
+
+        // 이미 선점한 닉네임이 있을 경우 삭제 처리
+        var myNick = redisHandler.getHashValue("memberNickNm", String.valueOf(id));
+        if (StringUtils.hasText(myNick)) {
+            redisHandler.deleteHashValue("memberNickNm", String.valueOf(id));
+            redisHandler.deleteHashValue("checkNick", myNick);
+        }
+
+        var info = NickNameInfo.builder()
+                .key(String.valueOf(id))
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        var myNickInfo = NickNameInfo.builder()
+                .key(nickNm)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        redisHandler.setHashValue("checkNick", nickNm, info);
+        redisHandler.setHashValue("memberNickNm", String.valueOf(id), myNickInfo);
+
+        return MessageEnum.CheckNick.AVAILABLE;
+    }
+
+    @Override
+    public void updateMemberInfo(MemberDomain.MemberInfoUpdateRequest request) {
+        var id = RequestUtils.getId();
+        // TODO file id 로 이미지 path 저장 처리
+
+        var existingNick = redisHandler.getHashValue("checkNick", request.nickNm(), NickNameInfo.class);
+        if (existingNick == null) {
+            throw new CustomException(MessageEnum.CheckNick.NON_CHECK);
+        }
+        if (!Long.valueOf(existingNick.getKey()).equals(id)) {
+            throw new CustomException(MessageEnum.CheckNick.POSSESSION);
+        }
+
+
+        var memberInfoEntity = memberInfoEntityRepository.findById(id)
+                .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        memberInfoEntity = memberInfoEntity.toBuilder()
+                .nickNm(request.nickNm())
+                .build();
+
+        memberInfoEntityRepository.save(memberInfoEntity);
+
+        // Redis 에 저장된 데이터 삭제 처리
+        redisHandler.deleteHashValue("checkNick", request.nickNm());
+        redisHandler.deleteHashValue("memberNickNm", String.valueOf(id));
     }
 }

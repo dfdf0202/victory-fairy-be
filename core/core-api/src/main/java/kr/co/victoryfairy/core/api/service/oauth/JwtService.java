@@ -3,6 +3,7 @@ package kr.co.victoryfairy.core.api.service.oauth;
 import kr.co.victoryfairy.core.api.domain.MemberDomain;
 import kr.co.victoryfairy.core.api.model.AccessTokenDto;
 import kr.co.victoryfairy.support.model.oauth.MemberAccount;
+import kr.co.victoryfairy.support.properties.JwtProperties;
 import kr.co.victoryfairy.support.utils.AccessTokenUtils;
 import kr.co.victoryfairy.support.utils.RequestUtils;
 import lombok.RequiredArgsConstructor;
@@ -13,8 +14,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class JwtService {
 
-    @Value("${jwt.secretKey}")
-    private String secretKey;
+    private final JwtProperties jwtProperties;
 
     private final String ACCESS_TOKEN_TIME = "60";
     private final String ACCESS_TOKEN_TIME_DEV = Integer.toString(60 * 24 * 365);
@@ -40,7 +40,7 @@ public class JwtService {
                 .ip(ip)
                 .build();
 
-        AccessTokenUtils.makeAuthToken(account, secretKey);
+        AccessTokenUtils.makeAuthToken(account, jwtProperties);
 
         auth.setAccessToken(account.getAccessToken());
         auth.setRefreshToken(account.getRefreshToken());
@@ -49,7 +49,7 @@ public class JwtService {
     }
 
     public AccessTokenDto checkMemberRefreshToken(String refreshToken) {
-        MemberAccount memberAccount = AccessTokenUtils.checkRefreshToken(refreshToken, secretKey);
+        MemberAccount memberAccount = AccessTokenUtils.checkRefreshToken(refreshToken, jwtProperties);
         return AccessTokenDto.builder()
                 .accessToken(memberAccount.getAccessToken())
                 .refreshToken(memberAccount.getRefreshToken())
