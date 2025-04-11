@@ -8,6 +8,7 @@ import io.dodn.springboot.core.enums.MatchEnum;
 import kr.co.victoryfairy.core.service.BatchService;
 import kr.co.victoryfairy.storage.db.core.repository.GameMatchEntityRepository;
 import kr.co.victoryfairy.support.handler.RedisHandler;
+import kr.co.victoryfairy.support.utils.SlackUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,16 +25,19 @@ public class BatchServiceImpl implements BatchService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final GameMatchEntityRepository gameMatchEntityRepository;
     private final RedisHandler redisHandler;
+    private final SlackUtils slackUtils;
 
-    public BatchServiceImpl(GameMatchEntityRepository gameMatchEntityRepository, RedisHandler redisHandler) {
+    public BatchServiceImpl(GameMatchEntityRepository gameMatchEntityRepository, RedisHandler redisHandler, SlackUtils slackUtils) {
         this.gameMatchEntityRepository = gameMatchEntityRepository;
         this.redisHandler = redisHandler;
+        this.slackUtils = slackUtils;
     }
 
     @Override
     public void batchScore() {
         logger.info("========== Batch  Start ==========");
 
+        var id = "";
         try (Playwright playwright = Playwright.create()) {
             Browser browser = playwright.chromium().launch();
             Page page = browser.newPage();
@@ -95,7 +99,7 @@ public class BatchServiceImpl implements BatchService {
                 // 홈 점수
                 String homeScore = game.querySelector(".team.home .score").innerText();
 
-                var id = formattedDate + awayTeamName + homeTeamName + matchOrder;
+                id = formattedDate + awayTeamName + homeTeamName + matchOrder;
                 var matchEntity = gameMatchEntityRepository.findById(id).orElse(null);
 
 
@@ -144,6 +148,7 @@ public class BatchServiceImpl implements BatchService {
             browser.close();
         } catch (Exception e) {
             e.printStackTrace();
+            slackUtils.message(id + " 점수 불러오는 중 에러 발생");
         }
     }
 }
