@@ -48,4 +48,29 @@ public interface MessageEnum {
         private String descEn;
     }
 
+    @Getter
+    @AllArgsConstructor
+    enum Data implements EnumDescriptor {
+        FAIL_NO_RESULT("해당 데이터가 존재하지 않습니다.","The result does not exist."),
+        FAIL_DUPLICATE("해당 데이터가 이미 등록 되어있습니다.","Data is duplicated."),
+        FAIL_NOT_NULL("필수 파라미터가 존재하지 않습니다.","Required parameters not entered."),
+        AVAILABLE("사용 가능한 데이터 입니다.","This is the data available."),
+        WRONG_APPROACH("잘못된 접근 입니다.","This is wrong approach.")
+        ;
+
+        private String descKr;
+        private String descEn;
+    }
+
+    @Getter
+    @AllArgsConstructor
+    enum Valid implements EnumDescriptor {
+        FAIL_EMAIL("Email 형식이 아닙니다.","Not in email format."),
+        FAIL_NULL("Null을 허용 하지 않습니다.","Null values are not allowed."),
+        FAIL_NOT_FOUND_ENDPOINT("엔드포인트가 존재 하지 않습니다.","Endpoint does not exist."),
+        FAIL_VALID_AVAILABLE("해당 데이터는 사용 할 수 없습니다.","That data is not available.");
+
+        private String descKr;
+        private String descEn;
+    }
 }
