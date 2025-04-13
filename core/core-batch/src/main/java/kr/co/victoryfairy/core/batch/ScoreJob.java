@@ -16,6 +16,7 @@ public class ScoreJob {
     @Scheduled(cron = "${batch.check.score}")
     public void checkScore() {
         batchService.batchScore();
+        batchService.batchMatchInfo();
     }
 
 }

@@ -175,11 +175,13 @@ public class CrawServiceImpl implements CrawService {
                             case POST -> null;
                         };
 
+
+
                         GameMatchEntity gameMatch = new GameMatchEntity(
                                 matchId
-                                ,sYear
                                 ,matchType
                                 ,seriesType
+                                ,sYear
                                 ,matchDateTime
                                 ,awayEntity
                                 ,away
@@ -187,9 +189,10 @@ public class CrawServiceImpl implements CrawService {
                                 ,homeEntity
                                 ,home
                                 ,homeScore
-                                ,matchStatus
                                 ,stadium
+                                ,matchStatus
                                 ,reason
+                                ,false
                                 );
 
                         gameEntities.add(gameMatch);
@@ -253,6 +256,11 @@ public class CrawServiceImpl implements CrawService {
                 hitterEntities.addAll(homeHitter);
                 pitcherEntities.addAll(awayPitcher);
                 pitcherEntities.addAll(homePitcher);
+
+                match = match.toBuilder()
+                            .isMatchInfoCraw(true)
+                            .build();
+                gameMatchEntityRepository.save(match);
             });
 
             browser.close();
