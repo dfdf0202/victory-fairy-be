@@ -95,9 +95,11 @@ public class BatchServiceImpl implements BatchService {
                 }
 
                 // 어웨이 점수
-                String awayScore = game.querySelector(".team.away .score").innerText();
+                var awayScoreSpan = game.querySelector(".team.away .score");
+                String awayScore = awayScoreSpan != null ? awayScoreSpan.innerText() : null;
                 // 홈 점수
-                String homeScore = game.querySelector(".team.home .score").innerText();
+                var homeScoreSpn = game.querySelector(".team.home .score");
+                String homeScore = homeScoreSpn != null ? homeScoreSpn.innerText() : null;
 
                 id = formattedDate + awayTeamName + homeTeamName + matchOrder;
                 var matchEntity = gameMatchEntityRepository.findById(id).orElse(null);
