@@ -136,9 +136,10 @@ public class BatchServiceImpl implements BatchService {
                     redisHandler.setMap(id, map);
                 } else {
                     redisHandler.deleteMap(id);
+                    continue;
                 }
 
-                if (matchEntity == null) return;
+                if (matchEntity == null) continue;
 
                 // 진행 예정인 대회 진행중 처리
                 if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.READY)) {
