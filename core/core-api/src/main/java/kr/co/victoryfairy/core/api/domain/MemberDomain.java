@@ -4,6 +4,7 @@ import io.dodn.springboot.core.enums.MemberEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
+import org.springdoc.core.annotations.ParameterObject;
 
 public interface MemberDomain {
 
@@ -53,6 +54,12 @@ public interface MemberDomain {
             Boolean isTeamAdded
     ) {}
 
+    @Schema(name = "Member.MemberOauthPathResponse")
+    record MemberOauthPathResponse(
+            @Schema(description = "path")
+            String path
+    ) {}
+
     @Schema(name = "Member.MemberLoginResponse")
     record MemberLoginResponse(
             @Schema(description = "member info")
@@ -63,6 +70,7 @@ public interface MemberDomain {
             String refreshToken
     ) {}
 
+    @ParameterObject
     @Schema(name = "Member.MemberLoginRequest")
     record MemberLoginRequest(
             @Schema(description = "code", example = "XHOtTSJ5nhn8ZXWgXD")
@@ -73,5 +81,26 @@ public interface MemberDomain {
 
             @Schema(description = "로그인 콜백 URL", example = "http://localhost:8080/auth/callbackKakao")
             String loginCallbackUrl
+    ) {}
+
+    @Schema(name = "Member.MemberTeamUpdateRequest")
+    record MemberTeamUpdateRequest(
+            @Schema(description = "team id", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
+            Long teamId
+    ) {}
+
+    @Schema(name = "Member.MemberLoginRequest")
+    record MemberCheckNickNameResponse(
+            @Schema(description = "닉네임")
+            String nickNm
+    ) {}
+
+    @Schema(name = "Member.MemberLoginRequest")
+    record MemberInfoUpdateRequest(
+            @Schema(description = "업로드 파일 id")
+            Long fileId,
+
+            @Schema(description = "닉네임", requiredMode = Schema.RequiredMode.REQUIRED)
+            String nickNm
     ) {}
 }

@@ -2,11 +2,23 @@ package kr.co.victoryfairy.storage.db.core.entity;
 
 import io.dodn.springboot.core.enums.MatchEnum;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Comment;
+import org.hibernate.annotations.DynamicInsert;
+import org.hibernate.annotations.DynamicUpdate;
 
 import java.time.LocalDateTime;
 
 @Entity(name = "game_match")
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder(toBuilder = true)
+@DynamicInsert
+@DynamicUpdate
 public class GameMatchEntity extends BaseEntity {
 
     @Id
@@ -68,95 +80,7 @@ public class GameMatchEntity extends BaseEntity {
     @Comment("사유")
     private String reason;
 
-    public void updateMatchStatus(MatchEnum.MatchStatus matchStatus) {
-        this.status = matchStatus;
-    }
-
-    public void updateMatchStatusAndScore(Short awayScore, Short homeScore, MatchEnum.MatchStatus status) {
-        this.awayScore = awayScore;
-        this.homeScore = homeScore;
-        this.status = status;
-        this.reason = "-";
-    }
-
-    public void cancelMatchStatus(String reason, MatchEnum.MatchStatus status) {
-        this.reason = reason;
-        this.status = status;
-    }
-
-    public GameMatchEntity() {
-    }
-
-    public GameMatchEntity(String id, String sYear, MatchEnum.MatchType matchType, MatchEnum.SeriesType seriesType, LocalDateTime matchAt, TeamEntity awayTeamEntity, String awayNm, Short awayScore, TeamEntity homeTeamEntity, String homeNm, Short homeScore, MatchEnum.MatchStatus status, String stadium, String reason) {
-        this.id = id;
-        this.season = sYear;
-        this.type = matchType;
-        this.series = seriesType;
-        this.matchAt = matchAt;
-        this.awayTeamEntity = awayTeamEntity;
-        this.awayNm = awayNm;
-        this.awayScore = awayScore;
-        this.homeTeamEntity = homeTeamEntity;
-        this.homeNm = homeNm;
-        this.homeScore = homeScore;
-        this.status = status;
-        this.stadium = stadium;
-        this.reason = reason;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public MatchEnum.MatchType getType() {
-        return type;
-    }
-
-    public MatchEnum.SeriesType getSeries() {
-        return series;
-    }
-
-    public String getSeason() {
-        return season;
-    }
-
-    public LocalDateTime getMatchAt() {
-        return matchAt;
-    }
-
-    public TeamEntity getAwayTeamEntity() {
-        return awayTeamEntity;
-    }
-
-    public String getAwayNm() {
-        return awayNm;
-    }
-
-    public Short getAwayScore() {
-        return awayScore;
-    }
-
-    public TeamEntity getHomeTeamEntity() {
-        return homeTeamEntity;
-    }
-
-    public String getHomeNm() {
-        return homeNm;
-    }
-
-    public Short getHomeScore() {
-        return homeScore;
-    }
-
-    public String getStadium() {
-        return stadium;
-    }
-
-    public MatchEnum.MatchStatus getStatus() {
-        return status;
-    }
-
-    public String getReason() {
-        return reason;
-    }
+    @Column
+    @Comment("경기 내용 크롤링 여부")
+    private Boolean isMatchInfoCraw = false;
 }

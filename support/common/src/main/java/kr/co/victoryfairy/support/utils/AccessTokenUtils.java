@@ -6,6 +6,7 @@ import kr.co.victoryfairy.support.constant.MessageEnum;
 import kr.co.victoryfairy.support.constant.StatusEnum;
 import kr.co.victoryfairy.support.exception.CustomException;
 import kr.co.victoryfairy.support.model.oauth.MemberAccount;
+import kr.co.victoryfairy.support.properties.JwtProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -20,8 +21,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AccessTokenUtils {
 
-    @Value("${jwt.secretKey}")
-    private static String secretKey;
+    //private final JwtProperties jwtProperties;
 
     public static String getAccessToken(HttpServletRequest request) {
         var accessToken = request.getHeader("accessToken");
@@ -32,7 +32,7 @@ public class AccessTokenUtils {
         return null;
     }
 
-    public static Boolean checkToken(HttpServletRequest request) {
+    public static Boolean checkToken(HttpServletRequest request, JwtProperties jwtProperties) {
         var accessToken = getAccessToken(request);
         log.info("accessToken : {}", accessToken);
         // accessToken 유무 판단
@@ -41,14 +41,14 @@ public class AccessTokenUtils {
         }
 
         //유효시간내의 토큰 해석
-        checkAccessToken(accessToken, secretKey, request);
+        checkAccessToken(accessToken, jwtProperties, request);
         return true;
     }
 
     //토큰 체크
-    public static Boolean checkAccessToken(String accessToken, String secretKey, HttpServletRequest request) {
+    public static Boolean checkAccessToken(String accessToken, JwtProperties jwtProperties, HttpServletRequest request) {
 
-        var parseToken = JwtUtils.parseToken(accessToken, secretKey);
+        var parseToken = JwtUtils.parseToken(accessToken, jwtProperties.getSecretKey());
         boolean isCertifiedToken = Boolean.parseBoolean(parseToken.get("isCertifiedToken").toString());
         if (!isCertifiedToken) {
             //accessToken is wrong
@@ -81,8 +81,8 @@ public class AccessTokenUtils {
 
 
     //Refresh 토큰 체크
-    public static MemberAccount checkRefreshToken(String refreshToken, String secretKey) {
-        var parseToken = JwtUtils.parseToken(refreshToken, secretKey);
+    public static MemberAccount checkRefreshToken(String refreshToken, JwtProperties jwtProperties) {
+        var parseToken = JwtUtils.parseToken(refreshToken, jwtProperties.getSecretKey());
         boolean isCertifiedToken = Boolean.parseBoolean(parseToken.get("isCertifiedToken").toString());
         if (!isCertifiedToken) {
             log.warn("refreshToken is wrong or expired : {}", refreshToken);
@@ -99,12 +99,12 @@ public class AccessTokenUtils {
         var account = objectMapper.convertValue(accountByToken, MemberAccount.class);
 
         //Token 다시 생성
-        makeAuthToken(account, secretKey);
+        makeAuthToken(account, jwtProperties);
 
         return account;
     }
 
-    public static void makeAuthToken(MemberAccount account, String secretKey) {
+    public static void makeAuthToken(MemberAccount account, JwtProperties jwtProperties) {
 
         //token에 로그인 계정 정보 저장
         Map<String, Object> claims = new HashMap<>();
@@ -113,9 +113,9 @@ public class AccessTokenUtils {
         account.setAccessToken(null);
         claims.put("accountByToken", account);
 
-        String token = JwtUtils.generateToken(claims, Integer.parseInt(account.getExpireMinutes()), secretKey);
+        String token = JwtUtils.generateToken(claims, Integer.parseInt(account.getExpireMinutes()), jwtProperties.getSecretKey());
         account.setAccessToken(token);
-        String refreshToken = JwtUtils.generateToken(claims, Integer.parseInt(account.getExpireMinutes()) * 24 * 30, secretKey);
+        String refreshToken = JwtUtils.generateToken(claims, Integer.parseInt(account.getExpireMinutes()) * 24 * 30, jwtProperties.getSecretKey());
         account.setRefreshToken(refreshToken);
     }
 

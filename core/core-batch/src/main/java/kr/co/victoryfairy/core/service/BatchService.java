@@ -4,4 +4,6 @@ public interface BatchService {
 
     void batchScore();
 
+    void batchMatchInfo();
+
 }

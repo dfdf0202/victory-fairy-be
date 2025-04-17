@@ -11,7 +11,9 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Builder(toBuilder = true)
+@DynamicInsert
+@DynamicUpdate
 public class MemberInfoEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
