@@ -22,7 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -79,12 +82,14 @@ public class BatchServiceImpl implements BatchService {
 
                 // 상태, 취소 사유 처리
                 var matchStatus = MatchEnum.MatchStatus.PROGRESS;
-                var reason = "-";
+                var reason = "";
                 if ("end".equals(statusClass)) {
                     matchStatus = MatchEnum.MatchStatus.END;
+                    reason  = game.querySelector(".bottom ul li a").innerText();
                 } else if ("cancel".equals(statusClass)) {
                     matchStatus = MatchEnum.MatchStatus.CANCELED;
-                    reason  = game.querySelector(".bottom ul li a").innerText();
+                } else if ("ing".equals(statusClass)) {
+                    matchStatus = MatchEnum.MatchStatus.PROGRESS;
                 }
 
                 // 더블헤더 여부 처리
@@ -112,53 +117,65 @@ public class BatchServiceImpl implements BatchService {
 
                 // 어웨이 점수
                 var awayScoreSpan = game.querySelector(".team.away .score");
-                Short awayScore = awayScoreSpan != null ? Short.parseShort(awayScoreSpan.innerText()) : null;
+                String awayScore = awayScoreSpan != null ? awayScoreSpan.innerText() : null;
                 // 홈 점수
                 var homeScoreSpn = game.querySelector(".team.home .score");
-                Short homeScore = homeScoreSpn != null ? Short.parseShort(homeScoreSpn.innerText()) : null;
+                String homeScore = homeScoreSpn != null ? homeScoreSpn.innerText() : null;
 
                 id = formattedDate + awayTeamName + homeTeamName + matchOrder;
+                var matchEntity = gameMatchEntityRepository.findById(id).orElse(null);
+
 
                 // Redis 저장 처리
                 if (matchStatus.equals(MatchEnum.MatchStatus.PROGRESS)) {
                     Map<String, String> map = new HashMap<>();
                     map.put("awayImage", awaySrc);
-                    map.put("awayScore", awayScore != null ? awayScore.toString() : null);
+                    map.put("awayScore", awayScore);
                     map.put("homeImage", homeSrc);
-                    map.put("homeScore", homeScore != null ? homeScore.toString() : null);
+                    map.put("homeScore", homeScore);
                     redisHandler.setMap(id, map);
                 } else {
                     redisHandler.deleteMap(id);
+                    continue;
                 }
 
-                var matchEntity = gameMatchEntityRepository.findById(id).orElse(null);
                 if (matchEntity == null) continue;
+
                 // 진행 예정인 대회 진행중 처리
                 if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.READY)) {
-                    matchEntity = matchEntity.toBuilder()
-                            .reason(reason)
-                            .status(matchStatus)
-                            .build();
-                    gameMatchEntityRepository.save(matchEntity);
-                }
-                // 진행 중인 경기의 최종 상태 변경
-                switch (matchStatus) {
-                    case END -> {
-                        matchEntity = matchEntity.toBuilder()
-                                        .awayScore(awayScore)
-                                        .homeScore(homeScore)
-                                        .status(matchStatus)
-                                        .build();
-                        gameMatchEntityRepository.save(matchEntity);
-                        redisHandler.deleteMap(id);
-                    }
-                    case CANCELED -> {
+
+                    if (matchStatus.equals(MatchEnum.MatchStatus.CANCELED)) {
                         matchEntity = matchEntity.toBuilder()
                                 .reason(reason)
                                 .status(matchStatus)
                                 .build();
-                        gameMatchEntityRepository.save(matchEntity);
-                        redisHandler.deleteMap(id);
+                    } else {
+                        matchEntity = matchEntity.toBuilder()
+                                .status(matchStatus)
+                                .build();
+                    }
+                    gameMatchEntityRepository.save(matchEntity);
+                }
+                // 진행 중인 경기의 최종 상태 변경
+                if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.PROGRESS)) {
+                    switch (matchStatus) {
+                        case END -> {
+                            matchEntity = matchEntity.toBuilder()
+                                    .awayScore(Short.parseShort(awayScore))
+                                    .homeScore(Short.parseShort(homeScore))
+                                    .status(matchStatus)
+                                    .build();
+                            gameMatchEntityRepository.save(matchEntity);
+                            redisHandler.deleteMap(id);
+                        }
+                        case CANCELED -> {
+                            matchEntity = matchEntity.toBuilder()
+                                    .reason(reason)
+                                    .status(matchStatus)
+                                    .build();
+                            gameMatchEntityRepository.save(matchEntity);
+                            redisHandler.deleteMap(id);
+                        }
                     }
                 }
             }
