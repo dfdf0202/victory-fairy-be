@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Partner {
+public class PartnerEntity extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,7 +19,7 @@ public class Partner {
 
     @ManyToOne
     @JoinColumn(name = "diary_id")
-    private Diary diary;                // 일기 식별자
+    private DiaryEntity diaryEntity;                // 일기 식별자
 
     private String name;                // 함께한 사람 이름
 

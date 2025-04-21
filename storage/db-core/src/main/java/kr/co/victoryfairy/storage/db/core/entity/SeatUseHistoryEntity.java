@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SeatUseHistory {
+public class SeatUseHistoryEntity extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,11 +19,11 @@ public class SeatUseHistory {
 
     @ManyToOne
     @JoinColumn(name = "seat_id")
-    private Seat seat;                  // 좌석 식별자
+    private SeatEntity seatEntity;                  // 좌석 식별자
 
     @OneToOne
     @JoinColumn(name = "diary_id")
-    private Diary diary;                // 일기 식별자
+    private DiaryEntity diaryEntity;                // 일기 식별자
 
     @Column(name = "seat_block")
     private String seatBlock;           // 좌석 블록
