@@ -1,6 +1,7 @@
 package kr.co.victoryfairy.core.api.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import kr.co.victoryfairy.core.api.domain.DiaryDomain;
 import kr.co.victoryfairy.core.api.service.DiaryService;
 import kr.co.victoryfairy.support.model.CustomResponse;
@@ -17,6 +18,7 @@ public class DiaryController {
         this.diaryService = diaryService;
     }
 
+    @SecurityRequirement(name = "accessToken")
     @Operation(summary = "일기 작성")
     @PostMapping("/diary")
     public CustomResponse<DiaryDomain.DiaryDto> writeDiary(@RequestBody DiaryDomain.DiaryDto request){

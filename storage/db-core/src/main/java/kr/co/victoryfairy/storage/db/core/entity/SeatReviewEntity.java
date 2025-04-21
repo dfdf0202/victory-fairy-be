@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SeatReview {
+public class SeatReviewEntity extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,7 +19,7 @@ public class SeatReview {
 
     @ManyToOne
     @JoinColumn(name = "seat_use_history_id")
-    private SeatUseHistory seatUseHistory;      // 좌석 이용 내역 식별자
+    private SeatUseHistoryEntity seatUseHistoryEntity;      // 좌석 이용 내역 식별자
 
     private String seatReview;                  // 좌석 리뷰
 

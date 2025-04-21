@@ -22,6 +22,7 @@ public class AccessTokenWebFilter extends PathPatternWebFilter {
     public AccessTokenWebFilter(JwtProperties jwtProperties) {
         this.jwtProperties = jwtProperties;
         this.addIncludePathPatterns("/api/v2/member/**");
+        this.addIncludePathPatterns("/api/v2/diary/**");
         this.addIncludePathPatterns("/member/**");
         this.addExcludePathPatterns(
             "/",

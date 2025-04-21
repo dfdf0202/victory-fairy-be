@@ -4,11 +4,15 @@ import kr.co.victoryfairy.core.api.domain.DiaryDomain;
 import kr.co.victoryfairy.core.api.service.DiaryService;
 import kr.co.victoryfairy.storage.db.core.entity.*;
 import kr.co.victoryfairy.storage.db.core.repository.*;
+import kr.co.victoryfairy.support.constant.MessageEnum;
+import kr.co.victoryfairy.support.exception.CustomException;
+import kr.co.victoryfairy.support.utils.RequestUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -22,30 +26,37 @@ public class DiaryServiceImpl implements DiaryService {
     private final PartnerRepository partnerRepository;
     private final DiaryMoodRepository diaryMoodRepository;
     private final GameMatchEntityRepository gameMatchRepository;
+    private final MemberEntityRepository memberEntityRepository;
 
     // 일기 작성
     public DiaryDomain.DiaryDto writeDiary(DiaryDomain.DiaryDto diaryDto){
+        // 로그인한 회원 조회
+        var id = RequestUtils.getId();
+        MemberEntity member = memberEntityRepository.findById(Objects.requireNonNull(id))
+                .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
         // 일기를 작성할 경기 조회
         GameMatchEntity gameMatch = gameMatchRepository.findById(diaryDto.gameMatchId())
-                .orElseThrow();
+                .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
         // 일기 필수 입력값 저장
-        Diary diary = Diary.builder()
+        DiaryEntity diaryEntity = DiaryEntity.builder()
+                .member(member)
                 .teamName(diaryDto.teamName())
                 .viewType(diaryDto.viewType())
                 .gameMatch(gameMatch)
                 .build();
-        Diary savedDiary = diaryRepository.save(diary);
+        DiaryEntity savedDiaryEntity = diaryRepository.save(diaryEntity);
 
         // 선택 입력값인 음식 리스트가 비어있지 않는 경우
         if (!diaryDto.foodNameList().isEmpty()) {
-            List<DiaryFood> foodList = new ArrayList<>();
+            List<DiaryFoodEntity> foodList = new ArrayList<>();
             for (String food : diaryDto.foodNameList()) {
-                DiaryFood diaryFood = DiaryFood.builder()
-                        .diary(savedDiary)
+                DiaryFoodEntity diaryFoodEntity = DiaryFoodEntity.builder()
+                        .diaryEntity(savedDiaryEntity)
                         .foodName(food)
                         .build();
-                foodList.add(diaryFood);
+                foodList.add(diaryFoodEntity);
 
             }
             diaryFoodRepository.saveAll(foodList);
@@ -54,13 +65,13 @@ public class DiaryServiceImpl implements DiaryService {
 
         // 선택 입력값인 기분 리스트가 비어있지 않는 경우
         if (!diaryDto.moodList().isEmpty()) {
-            List<DiaryMood> moodList = new ArrayList<>();
+            List<DiaryMoodEntity> moodList = new ArrayList<>();
             for (String mood : diaryDto.moodList()) {
-                DiaryMood diaryMood = DiaryMood.builder()
-                        .diary(savedDiary)
+                DiaryMoodEntity diaryMoodEntity = DiaryMoodEntity.builder()
+                        .diaryEntity(savedDiaryEntity)
                         .mood(mood)
                         .build();
-                moodList.add(diaryMood);
+                moodList.add(diaryMoodEntity);
 
             }
             diaryMoodRepository.saveAll(moodList);
@@ -69,17 +80,17 @@ public class DiaryServiceImpl implements DiaryService {
 
         // 선택 입력값인 함께한 사람 리스트가 비어있지 않는 경우
         if (!diaryDto.partnerList().isEmpty()) {
-            List<Partner> partnerList = new ArrayList<>();
+            List<PartnerEntity> partnerEntityList = new ArrayList<>();
             for (DiaryDomain.PartnerDto partnerDto : diaryDto.partnerList()) {
-                Partner partner = Partner.builder()
-                        .diary(savedDiary)
+                PartnerEntity partnerEntity = PartnerEntity.builder()
+                        .diaryEntity(savedDiaryEntity)
                         .name(partnerDto.name())
                         .teamName(partnerDto.teamName())
                         .build();
-                partnerList.add(partner);
+                partnerEntityList.add(partnerEntity);
 
             }
-            partnerRepository.saveAll(partnerList);
+            partnerRepository.saveAll(partnerEntityList);
 
         }
 
@@ -89,26 +100,27 @@ public class DiaryServiceImpl implements DiaryService {
         // 선택 입력값인 좌석이 비어있지 않는 경우
         if (diaryDtoSeat != null) {
             // 좌석 조회
-            Seat seat = seatRepository.findById(diaryDtoSeat.seatId()).orElseThrow();
+            SeatEntity seatEntity = seatRepository.findById(diaryDtoSeat.seatId())
+                    .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
             // 좌석 이용 내역 저장
-            SeatUseHistory seatUseHistory = SeatUseHistory.builder()
-                    .diary(savedDiary)
-                    .seat(seat)
+            SeatUseHistoryEntity seatUseHistoryEntity = SeatUseHistoryEntity.builder()
+                    .diaryEntity(savedDiaryEntity)
+                    .seatEntity(seatEntity)
                     .seatBlock(diaryDtoSeat.seatBlock())
                     .seatRow(diaryDtoSeat.seatRow())
                     .seatNumber(diaryDtoSeat.seatNumber())
                     .build();
-            SeatUseHistory savedSeatUseHistory = seatUseHistoryRepository.save(seatUseHistory);
+            SeatUseHistoryEntity savedSeatUseHistoryEntity = seatUseHistoryRepository.save(seatUseHistoryEntity);
 
             // 좌석 리뷰 저장
-            List<SeatReview> reviewList = new ArrayList<>();
+            List<SeatReviewEntity> reviewList = new ArrayList<>();
             for (String review : diaryDtoSeat.seatReview()) {
-                SeatReview seatReview = SeatReview.builder()
-                        .seatUseHistory(savedSeatUseHistory)
+                SeatReviewEntity seatReviewEntity = SeatReviewEntity.builder()
+                        .seatUseHistoryEntity(savedSeatUseHistoryEntity)
                         .seatReview(review)
                         .build();
-                reviewList.add(seatReview);
+                reviewList.add(seatReviewEntity);
             }
             seatReviewRepository.saveAll(reviewList);
 
