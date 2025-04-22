@@ -97,7 +97,7 @@ public class BatchServiceImpl implements BatchService {
                 // 어웨이 팀명 (왼쪽 엠블럼)
                 String awaySrc = game.querySelector(".emb.txt-r img").getAttribute("src");
                 String awayTeamName = "";
-                Matcher awayMatcher = Pattern.compile("emblem_(\\w+)\\.png").matcher(awaySrc);
+                Matcher awayMatcher = matchStatus.equals(MatchEnum.MatchStatus.CANCELED) ? Pattern.compile("emblemR_(\\w+)\\.png").matcher(awaySrc) : Pattern.compile("emblem_(\\w+)\\.png").matcher(awaySrc);
                 if (awayMatcher.find()) {
                     awayTeamName = awayMatcher.group(1);
                 }
@@ -105,7 +105,7 @@ public class BatchServiceImpl implements BatchService {
                 // 홈 팀명 (오른쪽 엠블럼)
                 String homeSrc = game.querySelector(".emb:not(.txt-r) img").getAttribute("src");
                 String homeTeamName = "";
-                Matcher homeMatcher = Pattern.compile("emblem_(\\w+)\\.png").matcher(homeSrc);
+                Matcher homeMatcher = matchStatus.equals(MatchEnum.MatchStatus.CANCELED) ? Pattern.compile("emblemR_(\\w+)\\.png").matcher(homeSrc) : Pattern.compile("emblem_(\\w+)\\.png").matcher(homeSrc);
                 if (homeMatcher.find()) {
                     homeTeamName = homeMatcher.group(1);
                 }
