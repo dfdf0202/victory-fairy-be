@@ -109,6 +109,7 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public void updateTeam(MemberDomain.MemberTeamUpdateRequest request) {
         var id = RequestUtils.getId();
+        if (id == null) throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
 
         var memberInfoEntity = memberInfoEntityRepository.findById(id)
                 .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
@@ -126,6 +127,8 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public MemberDomain.MemberCheckNickNameResponse checkNick() {
         var id = RequestUtils.getId();
+        if (id == null) throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
+
         var myNick = redisHandler.getHashValue("memberNickNm", String.valueOf(id), NickNameInfo.class);
 
         if (myNick == null) {
@@ -138,7 +141,7 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public MessageEnum.CheckNick checkNickNmDuplicate(String nickNm) {
         var id = RequestUtils.getId();
-
+        if (id == null) throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
         // Redis 에 저장된 nickNm 이 있는지 체크
         var existingNick = redisHandler.getHashValue("checkNick", nickNm, NickNameInfo.class);
 
@@ -185,6 +188,7 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public void updateMemberInfo(MemberDomain.MemberInfoUpdateRequest request) {
         var id = RequestUtils.getId();
+        if (id == null) throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
         // TODO file id 로 이미지 path 저장 처리
 
         var existingNick = redisHandler.getHashValue("checkNick", request.nickNm(), NickNameInfo.class);
