@@ -1,15 +1,20 @@
+HELP.md
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**
-!**/src/test/**
+!**/src/main/**/build/
+!**/src/test/**/build/
+#**/src/test
+**/src/main/generated
 
-### IDEA ###
+### IntelliJ IDEA ###
 .idea
 *.iws
 *.iml
 *.ipr
 out/
+!**/src/main/**/out/
+!**/src/test/**/out/
 
 ### project
 *.yml
