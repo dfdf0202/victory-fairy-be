@@ -1,3 +1,8 @@
+ext {
+    API_MODULE = "api"
+    MAIN_CLASS = "kr.co.victoryfairy.CoreApiApplication"
+}
+
 bootJar.enabled = true
 jar.enabled = false
 
