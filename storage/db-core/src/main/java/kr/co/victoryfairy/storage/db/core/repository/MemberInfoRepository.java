@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface MemberInfoEntityRepository extends JpaRepository<MemberInfoEntity, Long> {
+public interface MemberInfoRepository extends JpaRepository<MemberInfoEntity, Long> {
 
     Optional<MemberInfoEntity> findBySnsTypeAndSnsId(MemberEnum.SnsType snsType, String snsId);
 

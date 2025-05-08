@@ -16,6 +16,7 @@ include 'core:core-enum'
 include 'core:core-api'
 include 'core:core-craw'
 include 'core:core-batch'
+include 'core:core-file'
 
 include 'storage:db-core'
 include 'tests:api-docs'

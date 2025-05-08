@@ -11,10 +11,10 @@ import kr.co.victoryfairy.storage.db.core.entity.GameMatchEntity;
 import kr.co.victoryfairy.storage.db.core.entity.HitterRecordEntity;
 import kr.co.victoryfairy.storage.db.core.entity.PitcherRecordEntity;
 import kr.co.victoryfairy.storage.db.core.entity.TeamEntity;
-import kr.co.victoryfairy.storage.db.core.repository.GameMatchEntityRepository;
-import kr.co.victoryfairy.storage.db.core.repository.HitterRecordEntityRepository;
-import kr.co.victoryfairy.storage.db.core.repository.PitcherRecordEntityRepository;
-import kr.co.victoryfairy.storage.db.core.repository.TeamEntityRepository;
+import kr.co.victoryfairy.storage.db.core.repository.GameMatchRepository;
+import kr.co.victoryfairy.storage.db.core.repository.HitterRecordRepository;
+import kr.co.victoryfairy.storage.db.core.repository.PitcherRecordRepository;
+import kr.co.victoryfairy.storage.db.core.repository.TeamRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -28,17 +28,17 @@ import java.util.stream.Collectors;
 
 @Service
 public class CrawServiceImpl implements CrawService {
-    private final TeamEntityRepository teamEntityRepository;
-    private final GameMatchEntityRepository gameMatchEntityRepository;
-    private final HitterRecordEntityRepository hitterRecordEntityRepository;
-    private final PitcherRecordEntityRepository pitcherRecordEntityRepository;
+    private final TeamRepository teamRepository;
+    private final GameMatchRepository gameMatchRepository;
+    private final HitterRecordRepository hitterRecordRepository;
+    private final PitcherRecordRepository pitcherRecordRepository;
 
-    public CrawServiceImpl(TeamEntityRepository teamEntityRepository, GameMatchEntityRepository gameMatchEntityRepository,
-                           HitterRecordEntityRepository hitterRecordEntityRepository, PitcherRecordEntityRepository pitcherRecordEntityRepository) {
-        this.teamEntityRepository = teamEntityRepository;
-        this.gameMatchEntityRepository = gameMatchEntityRepository;
-        this.hitterRecordEntityRepository = hitterRecordEntityRepository;
-        this.pitcherRecordEntityRepository = pitcherRecordEntityRepository;
+    public CrawServiceImpl(TeamRepository teamRepository, GameMatchRepository gameMatchRepository,
+                           HitterRecordRepository hitterRecordRepository, PitcherRecordRepository pitcherRecordRepository) {
+        this.teamRepository = teamRepository;
+        this.gameMatchRepository = gameMatchRepository;
+        this.hitterRecordRepository = hitterRecordRepository;
+        this.pitcherRecordRepository = pitcherRecordRepository;
     }
 
     @Override
@@ -54,7 +54,7 @@ public class CrawServiceImpl implements CrawService {
 
             int startMonth = StringUtils.hasText(sMonth) ? Integer.parseInt(sMonth) : 3;
 
-            var teamEntities = teamEntityRepository.findAll().stream()
+            var teamEntities = teamRepository.findAll().stream()
                     .collect(Collectors.toMap(TeamEntity::getKboNm, entity -> entity));
 
             List<GameMatchEntity> gameEntities = new ArrayList<>();
@@ -208,7 +208,7 @@ public class CrawServiceImpl implements CrawService {
                 }
             }
 
-            gameMatchEntityRepository.saveAll(gameEntities);
+            gameMatchRepository.saveAll(gameEntities);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -217,7 +217,7 @@ public class CrawServiceImpl implements CrawService {
     @Override
     @Transactional
     public void crawMatchDetail(String sYear) {
-        var matches = gameMatchEntityRepository.findBySeason(sYear).stream()
+        var matches = gameMatchRepository.findBySeason(sYear).stream()
                 .sorted(Comparator.comparing(GameMatchEntity :: getMatchAt))
                 .filter(match -> MatchEnum.MatchStatus.END.equals(match.getStatus()))
                 .toList();
@@ -260,7 +260,7 @@ public class CrawServiceImpl implements CrawService {
                 match = match.toBuilder()
                             .isMatchInfoCraw(true)
                             .build();
-                gameMatchEntityRepository.save(match);
+                gameMatchRepository.save(match);
             });
 
             browser.close();
@@ -269,8 +269,8 @@ public class CrawServiceImpl implements CrawService {
             e.printStackTrace();
         }
 
-        hitterRecordEntityRepository.saveAll(hitterEntities);
-        pitcherRecordEntityRepository.saveAll(pitcherEntities);
+        hitterRecordRepository.saveAll(hitterEntities);
+        pitcherRecordRepository.saveAll(pitcherEntities);
     }
 
     private LocalDateTime parseDateTime(String sYear, String dateStr, String timeStr) {

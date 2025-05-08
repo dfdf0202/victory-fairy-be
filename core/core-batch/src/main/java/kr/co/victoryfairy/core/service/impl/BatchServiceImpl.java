@@ -9,10 +9,10 @@ import kr.co.victoryfairy.core.service.BatchService;
 import kr.co.victoryfairy.storage.db.core.entity.GameMatchEntity;
 import kr.co.victoryfairy.storage.db.core.entity.HitterRecordEntity;
 import kr.co.victoryfairy.storage.db.core.entity.PitcherRecordEntity;
-import kr.co.victoryfairy.storage.db.core.repository.GameMatchEntityCustomRepository;
-import kr.co.victoryfairy.storage.db.core.repository.GameMatchEntityRepository;
-import kr.co.victoryfairy.storage.db.core.repository.HitterRecordEntityRepository;
-import kr.co.victoryfairy.storage.db.core.repository.PitcherRecordEntityRepository;
+import kr.co.victoryfairy.storage.db.core.repository.GameMatchCustomRepository;
+import kr.co.victoryfairy.storage.db.core.repository.GameMatchRepository;
+import kr.co.victoryfairy.storage.db.core.repository.HitterRecordRepository;
+import kr.co.victoryfairy.storage.db.core.repository.PitcherRecordRepository;
 import kr.co.victoryfairy.support.handler.RedisHandler;
 import kr.co.victoryfairy.support.utils.SlackUtils;
 import org.slf4j.Logger;
@@ -29,23 +29,23 @@ import java.util.regex.Pattern;
 @Service
 public class BatchServiceImpl implements BatchService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
-    private final GameMatchEntityRepository gameMatchEntityRepository;
-    private final GameMatchEntityCustomRepository gameMatchEntityCustomRepository;
-    private final HitterRecordEntityRepository hitterRecordEntityRepository;
-    private final PitcherRecordEntityRepository pitcherRecordEntityRepository;
+    private final GameMatchRepository gameMatchRepository;
+    private final GameMatchCustomRepository gameMatchEntityCustomRepository;
+    private final HitterRecordRepository hitterRecordRepository;
+    private final PitcherRecordRepository pitcherRecordRepository;
 
     private final RedisHandler redisHandler;
     private final SlackUtils slackUtils;
 
-    public BatchServiceImpl(GameMatchEntityRepository gameMatchEntityRepository,
-                            GameMatchEntityCustomRepository gameMatchEntityCustomRepository,
-                            HitterRecordEntityRepository hitterRecordEntityRepository,
-                            PitcherRecordEntityRepository pitcherRecordEntityRepository,
+    public BatchServiceImpl(GameMatchRepository gameMatchRepository,
+                            GameMatchCustomRepository gameMatchEntityCustomRepository,
+                            HitterRecordRepository hitterRecordRepository,
+                            PitcherRecordRepository pitcherRecordRepository,
                             RedisHandler redisHandler, SlackUtils slackUtils) {
-        this.gameMatchEntityRepository = gameMatchEntityRepository;
+        this.gameMatchRepository = gameMatchRepository;
         this.gameMatchEntityCustomRepository = gameMatchEntityCustomRepository;
-        this.hitterRecordEntityRepository = hitterRecordEntityRepository;
-        this.pitcherRecordEntityRepository = pitcherRecordEntityRepository;
+        this.hitterRecordRepository = hitterRecordRepository;
+        this.pitcherRecordRepository = pitcherRecordRepository;
         this.redisHandler = redisHandler;
         this.slackUtils = slackUtils;
     }
@@ -60,6 +60,7 @@ public class BatchServiceImpl implements BatchService {
             Browser browser = playwright.chromium().launch();
             Page page = browser.newPage();
             page.navigate("https://m.koreabaseball.com/Kbo/Schedule.aspx");
+            //page.evaluate("getGameDateList('20250503')");
 
             page.waitForSelector("ul#now");
             List<ElementHandle> gameElements = page.querySelectorAll("ul#now > li.list");
@@ -131,7 +132,7 @@ public class BatchServiceImpl implements BatchService {
                     redisHandler.deleteMap(id);
                 }
 
-                var matchEntity = gameMatchEntityRepository.findById(id).orElse(null);
+                var matchEntity = gameMatchRepository.findById(id).orElse(null);
                 if (matchEntity == null) continue;
                 // 진행 예정인 대회 진행중 처리
                 if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.READY)) {
@@ -139,7 +140,7 @@ public class BatchServiceImpl implements BatchService {
                             .reason(reason)
                             .status(matchStatus)
                             .build();
-                    gameMatchEntityRepository.save(matchEntity);
+                    gameMatchRepository.save(matchEntity);
                 }
                 // 진행 중인 경기의 최종 상태 변경
                 switch (matchStatus) {
@@ -149,7 +150,7 @@ public class BatchServiceImpl implements BatchService {
                                 .homeScore(homeScore)
                                 .status(matchStatus)
                                 .build();
-                        gameMatchEntityRepository.save(matchEntity);
+                        gameMatchRepository.save(matchEntity);
                         redisHandler.deleteMap(id);
                     }
                     case CANCELED -> {
@@ -157,7 +158,7 @@ public class BatchServiceImpl implements BatchService {
                                 .reason(reason)
                                 .status(matchStatus)
                                 .build();
-                        gameMatchEntityRepository.save(matchEntity);
+                        gameMatchRepository.save(matchEntity);
                         redisHandler.deleteMap(id);
                     }
                 }
@@ -224,13 +225,13 @@ public class BatchServiceImpl implements BatchService {
                         .isMatchInfoCraw(true)
                         .build();
 
-                gameMatchEntityRepository.save(entity);
+                gameMatchRepository.save(entity);
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
-            hitterRecordEntityRepository.saveAll(hitterEntities);
-            pitcherRecordEntityRepository.saveAll(pitcherEntities);
+            hitterRecordRepository.saveAll(hitterEntities);
+            pitcherRecordRepository.saveAll(pitcherEntities);
         });
 
         logger.info("========== Match Info Craw  END ==========");

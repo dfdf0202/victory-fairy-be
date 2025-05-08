@@ -2,12 +2,11 @@ package kr.co.victoryfairy.storage.db.core.repository.impl;
 
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.ComparableExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.StringTemplate;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import kr.co.victoryfairy.storage.db.core.entity.GameMatchEntity;
-import kr.co.victoryfairy.storage.db.core.repository.GameMatchEntityCustomRepository;
+import kr.co.victoryfairy.storage.db.core.repository.GameMatchCustomRepository;
 import org.springframework.data.jpa.repository.support.QuerydslRepositorySupport;
 import org.springframework.stereotype.Repository;
 
@@ -18,11 +17,11 @@ import java.util.List;
 import static kr.co.victoryfairy.storage.db.core.entity.QGameMatchEntity.gameMatchEntity;
 
 @Repository
-public class GameMatchEntityCustomRepositoryImpl extends QuerydslRepositorySupport implements GameMatchEntityCustomRepository {
+public class GameMatchCustomRepositoryImpl extends QuerydslRepositorySupport implements GameMatchCustomRepository {
 
     private final JPAQueryFactory jpaQueryFactory;
 
-    public GameMatchEntityCustomRepositoryImpl(JPAQueryFactory jpaQueryFactory) {
+    public GameMatchCustomRepositoryImpl(JPAQueryFactory jpaQueryFactory) {
         super(GameMatchEntity.class);
         this.jpaQueryFactory = jpaQueryFactory;
     }

@@ -8,9 +8,9 @@ import kr.co.victoryfairy.core.api.service.oauth.JwtService;
 import kr.co.victoryfairy.core.api.service.oauth.OauthFactory;
 import kr.co.victoryfairy.storage.db.core.entity.MemberEntity;
 import kr.co.victoryfairy.storage.db.core.entity.MemberInfoEntity;
-import kr.co.victoryfairy.storage.db.core.repository.MemberEntityRepository;
-import kr.co.victoryfairy.storage.db.core.repository.MemberInfoEntityRepository;
-import kr.co.victoryfairy.storage.db.core.repository.TeamEntityRepository;
+import kr.co.victoryfairy.storage.db.core.repository.MemberRepository;
+import kr.co.victoryfairy.storage.db.core.repository.MemberInfoRepository;
+import kr.co.victoryfairy.storage.db.core.repository.TeamRepository;
 import kr.co.victoryfairy.support.constant.MessageEnum;
 import kr.co.victoryfairy.support.exception.CustomException;
 import kr.co.victoryfairy.support.handler.RedisHandler;
@@ -28,9 +28,9 @@ import java.time.LocalDateTime;
 public class MemberServiceImpl implements MemberService {
 
     private final OauthFactory oauthFactory;
-    private final MemberEntityRepository memberEntityRepository;
-    private final MemberInfoEntityRepository memberInfoEntityRepository;
-    private final TeamEntityRepository teamEntityRepository;
+    private final MemberRepository memberRepository;
+    private final MemberInfoRepository memberInfoRepository;
+    private final TeamRepository teamRepository;
     private final JwtService jwtService;
     private final RedisHandler redisHandler;
 
@@ -51,7 +51,7 @@ public class MemberServiceImpl implements MemberService {
         var memberSns = service.parseSnsInfo(request);
 
         // sns 정보로 가입된 이력 확인
-        var memberInfoEntity = memberInfoEntityRepository.findBySnsTypeAndSnsId(request.snsType(), memberSns.snsId())
+        var memberInfoEntity = memberInfoRepository.findBySnsTypeAndSnsId(request.snsType(), memberSns.snsId())
                 .orElse(null);
 
         // memberEntity 없을시 회원 가입 처리
@@ -63,14 +63,14 @@ public class MemberServiceImpl implements MemberService {
                     .lastConnectIp(RequestUtils.getRemoteIp())
                     .lastConnectAt(LocalDateTime.now())
                     .build();
-            memberEntityRepository.save(memberEntity);            // 멤버 등록
+            memberRepository.save(memberEntity);            // 멤버 등록
             memberInfoEntity = MemberInfoEntity.builder()
                     .memberEntity(memberEntity)
                     .snsId(memberSns.snsId())
                     .snsType(request.snsType())
                     .email(memberSns.email())
                     .build();
-            memberInfoEntityRepository.save(memberInfoEntity);    // 멤버 정보 등록
+            memberInfoRepository.save(memberInfoEntity);    // 멤버 정보 등록
 
             var memberInfoDto = MemberDomain.MemberInfoDto.builder()
                     .snsType(request.snsType())
@@ -87,7 +87,7 @@ public class MemberServiceImpl implements MemberService {
         // 마지막 로그인 시간, ip 업데이트
         var memberEntity = memberInfoEntity.getMemberEntity();
         memberEntity.updateLastLogin(RequestUtils.getRemoteIp(), LocalDateTime.now());
-        memberEntityRepository.save(memberEntity);
+        memberRepository.save(memberEntity);
 
         var teamEntity = memberInfoEntity.getTeamEntity();
         var memberInfoDto = MemberDomain.MemberInfoDto.builder()
@@ -111,17 +111,17 @@ public class MemberServiceImpl implements MemberService {
         var id = RequestUtils.getId();
         if (id == null) throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
 
-        var memberInfoEntity = memberInfoEntityRepository.findById(id)
+        var memberInfoEntity = memberInfoRepository.findById(id)
                 .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
-        var teamEntity = teamEntityRepository.findById(request.teamId())
+        var teamEntity = teamRepository.findById(request.teamId())
                 .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
         memberInfoEntity = memberInfoEntity.toBuilder()
                 .teamEntity(teamEntity)
                 .build();
 
-        memberInfoEntityRepository.save(memberInfoEntity);
+        memberInfoRepository.save(memberInfoEntity);
     }
 
     @Override
@@ -158,7 +158,7 @@ public class MemberServiceImpl implements MemberService {
         }
 
         // 이미 DB 에 저장된 닉네임인지 체크
-        if (memberInfoEntityRepository.findByNickNm(nickNm).isPresent()) {
+        if (memberInfoRepository.findByNickNm(nickNm).isPresent()) {
             return MessageEnum.CheckNick.DUPLICATE;
         }
 
@@ -200,14 +200,14 @@ public class MemberServiceImpl implements MemberService {
         }
 
 
-        var memberInfoEntity = memberInfoEntityRepository.findById(id)
+        var memberInfoEntity = memberInfoRepository.findById(id)
                 .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
         memberInfoEntity = memberInfoEntity.toBuilder()
                 .nickNm(request.nickNm())
                 .build();
 
-        memberInfoEntityRepository.save(memberInfoEntity);
+        memberInfoRepository.save(memberInfoEntity);
 
         // Redis 에 저장된 데이터 삭제 처리
         redisHandler.deleteHashValue("checkNick", request.nickNm());

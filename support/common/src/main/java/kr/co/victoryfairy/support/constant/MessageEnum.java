@@ -86,4 +86,26 @@ public interface  MessageEnum {
         private String descKr;
         private String descEn;
     }
+
+    @Getter
+    @AllArgsConstructor
+    enum File implements EnumDescriptor {
+
+        UPLOAD("업로드가 완료되었습니다.","Upload completed."),
+        FAIL_UPLOAD("업로드가 실패하였습니다.","Upload failed."),
+        FAIL_UPLOAD_FORMAT("지정된 형식이 아닙니다.","Not in specified format."),
+        FAIL_RESIZE("리사이즈에 실패했습니다.", "Fail resize"),
+
+        DOWNLOAD("파일 다운로드를 성공하였습니다.","Download was successful."),
+        FAIL_DOWNLOAD("파일 다운로드를 실패하였습니다..","Download failed."),
+        FAIL_MAX_SIZE("파일 크기가 허용된 최대 크기를 초과하였습니다.","The file size exceeds the maximum allowed limit."),
+
+        DELETE("파일 삭제가 완료되었습니다.", "File deletion is complete."),
+
+        WRONG_FILE("잘못된 파일입니다.", "Wrong file")
+        ;
+
+        private String descKr;
+        private String descEn;
+    }
 }

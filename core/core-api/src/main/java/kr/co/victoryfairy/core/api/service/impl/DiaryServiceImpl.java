@@ -25,14 +25,14 @@ public class DiaryServiceImpl implements DiaryService {
     private final SeatReviewRepository seatReviewRepository;
     private final PartnerRepository partnerRepository;
     private final DiaryMoodRepository diaryMoodRepository;
-    private final GameMatchEntityRepository gameMatchRepository;
-    private final MemberEntityRepository memberEntityRepository;
+    private final GameMatchRepository gameMatchRepository;
+    private final MemberRepository memberRepository;
 
     // 일기 작성
     public DiaryDomain.DiaryDto writeDiary(DiaryDomain.DiaryDto diaryDto){
         // 로그인한 회원 조회
         var id = RequestUtils.getId();
-        MemberEntity member = memberEntityRepository.findById(Objects.requireNonNull(id))
+        MemberEntity member = memberRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
         // 일기를 작성할 경기 조회
