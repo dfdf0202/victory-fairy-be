@@ -67,7 +67,7 @@ public class FileServiceImpl implements FileService {
         List<FileDomain.Response> response = new ArrayList<>();
 
         return fileEntities.stream()
-                .map(entity -> new FileDomain.Response(entity.getId(), entity.getName(),entity.getSaveName(), entity.getPath()))
+                .map(entity -> new FileDomain.Response(entity.getId(), entity.getName(),entity.getSaveName(), entity.getPath(), entity.getExt()))
                 .toList();
     }
 

@@ -19,7 +19,9 @@ public interface FileDomain {
             @Schema(description = "저장된 파일명")
             String saveName,
             @Schema(description = "경로")
-            String path
+            String path,
+            @Schema(description = "확장자")
+            String ext
     ) {}
 
     @Schema(name = "File.CreateRequest")

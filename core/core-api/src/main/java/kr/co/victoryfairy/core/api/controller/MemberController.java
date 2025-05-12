@@ -64,7 +64,7 @@ public class MemberController {
     }
 
     @SecurityRequirement(name = "accessToken")
-    @Operation(summary = "프로필 사진, 닉네임 수정", description = "아직 파일 업로드 기능이 구현되지 않아 프로필 이미지 수정은 추후에 넣겠습니다.")
+    @Operation(summary = "프로필 사진, 닉네임 수정")
     @PatchMapping("/info")
     public CustomResponse<MessageEnum> updateMemberInfo(@RequestBody @Validated MemberDomain.MemberInfoUpdateRequest request) {
         memberService.updateMemberInfo(request);
