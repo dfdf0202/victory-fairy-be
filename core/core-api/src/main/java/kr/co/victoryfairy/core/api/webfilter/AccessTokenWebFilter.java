@@ -21,15 +21,15 @@ public class AccessTokenWebFilter extends PathPatternWebFilter {
 
     public AccessTokenWebFilter(JwtProperties jwtProperties) {
         this.jwtProperties = jwtProperties;
-        this.addIncludePathPatterns("/api/v2/member/**");
-        this.addIncludePathPatterns("/api/v2/diary/**");
+        this.addIncludePathPatterns("/v2/api/member/**");
+        this.addIncludePathPatterns("/v2/api/diary/**");
         this.addIncludePathPatterns("/member/**");
         this.addExcludePathPatterns(
             "/",
             "/swagger-ui/**",
             "/swagger/**",
-            "/api/v2/member/auth-path",
-            "/api/v2/member/login",
+            "/v2/api/member/auth-path",
+            "/v2/api/member/login",
             "/member/login",
             "/member/auth-path"
         );

@@ -97,8 +97,7 @@ public class FileServiceImpl implements FileService {
 
     private String makeFileSaveName(MultipartFile file) {
         String uuid = UUID.randomUUID().toString();
-        String fileExtension = getExtension(file);
-        return uuid + "." + fileExtension;
+        return uuid;
     }
 
     /**
@@ -167,7 +166,7 @@ public class FileServiceImpl implements FileService {
      */
     private void saveFile(String saveName, String path, MultipartFile file) {
 
-        Path savedPath = Path.of(fileProperties.getStoragePath(), path, saveName);
+        Path savedPath = Path.of(fileProperties.getStoragePath(), path, saveName + "." + getExtension(file));
 
         try {
             //File savedFile = new File(savedPath, saveName);

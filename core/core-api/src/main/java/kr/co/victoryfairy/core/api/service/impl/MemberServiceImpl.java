@@ -1,16 +1,16 @@
 package kr.co.victoryfairy.core.api.service.impl;
 
 import io.dodn.springboot.core.enums.MemberEnum;
+import io.dodn.springboot.core.enums.RefType;
 import kr.co.victoryfairy.core.api.domain.MemberDomain;
 import kr.co.victoryfairy.core.api.model.NickNameInfo;
 import kr.co.victoryfairy.core.api.service.MemberService;
 import kr.co.victoryfairy.core.api.service.oauth.JwtService;
 import kr.co.victoryfairy.core.api.service.oauth.OauthFactory;
+import kr.co.victoryfairy.storage.db.core.entity.FileRefEntity;
 import kr.co.victoryfairy.storage.db.core.entity.MemberEntity;
 import kr.co.victoryfairy.storage.db.core.entity.MemberInfoEntity;
-import kr.co.victoryfairy.storage.db.core.repository.MemberRepository;
-import kr.co.victoryfairy.storage.db.core.repository.MemberInfoRepository;
-import kr.co.victoryfairy.storage.db.core.repository.TeamRepository;
+import kr.co.victoryfairy.storage.db.core.repository.*;
 import kr.co.victoryfairy.support.constant.MessageEnum;
 import kr.co.victoryfairy.support.exception.CustomException;
 import kr.co.victoryfairy.support.handler.RedisHandler;
@@ -31,6 +31,8 @@ public class MemberServiceImpl implements MemberService {
     private final MemberRepository memberRepository;
     private final MemberInfoRepository memberInfoRepository;
     private final TeamRepository teamRepository;
+    private final FileRepository fileRepository;
+    private final FileRefRepository fileRefRepository;
     private final JwtService jwtService;
     private final RedisHandler redisHandler;
 
@@ -186,10 +188,10 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
+    @Transactional
     public void updateMemberInfo(MemberDomain.MemberInfoUpdateRequest request) {
         var id = RequestUtils.getId();
         if (id == null) throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
-        // TODO file id 로 이미지 path 저장 처리
 
         var existingNick = redisHandler.getHashValue("checkNick", request.nickNm(), NickNameInfo.class);
         if (existingNick == null) {
@@ -199,7 +201,6 @@ public class MemberServiceImpl implements MemberService {
             throw new CustomException(MessageEnum.CheckNick.POSSESSION);
         }
 
-
         var memberInfoEntity = memberInfoRepository.findById(id)
                 .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
@@ -208,6 +209,27 @@ public class MemberServiceImpl implements MemberService {
                 .build();
 
         memberInfoRepository.save(memberInfoEntity);
+
+        // TODO file id 로 이미지 path 저장 처리
+        if (request.fileId() != null) {
+            var fileEntity = fileRepository.findById(request.fileId())
+                    .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+            var fileRefEntity = fileRefRepository.findByFileEntityIdAndIsUseTrue(request.fileId()).orElse(null);
+
+            // 기존 등록된 프로필 사진 isUse false 처리
+            if (fileRefEntity != null) {
+                fileRefEntity.delete();
+            }
+
+            var newFileRefEntity = FileRefEntity.builder()
+                    .fileEntity(fileEntity)
+                    .refId(id)
+                    .refType(RefType.PROFILE)
+                    .build();
+
+            fileRefRepository.save(newFileRefEntity);
+        }
 
         // Redis 에 저장된 데이터 삭제 처리
         redisHandler.deleteHashValue("checkNick", request.nickNm());

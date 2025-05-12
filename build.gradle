@@ -10,7 +10,6 @@ apply from: 'lint.gradle'
 
 allprojects {
     group = "${projectGroup}"
-    version = "${applicationVersion}"
     sourceCompatibility = project.javaVersion
 
     repositories {

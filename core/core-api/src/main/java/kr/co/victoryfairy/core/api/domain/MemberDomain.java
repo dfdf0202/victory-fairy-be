@@ -97,7 +97,7 @@ public interface MemberDomain {
 
     @Schema(name = "Member.MemberLoginRequest")
     record MemberInfoUpdateRequest(
-            @Schema(description = "업로드 파일 id")
+            @Schema(description = "업로드된 파일 id")
             Long fileId,
 
             @Schema(description = "닉네임", requiredMode = Schema.RequiredMode.REQUIRED)

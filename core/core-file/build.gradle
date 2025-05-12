@@ -1,9 +1,25 @@
 ext {
-    API_MODULE = "file"
-    MAIN_CLASS = "kr.co.victoryfairy.CoreFileApplication"
+    SERVICE = "file"
 }
 
-bootJar.enabled = true
+bootJar {
+    enabled = true
+
+    doLast {
+        // JAR 파일을 .deploy 디렉토리로 복사
+        copy {
+            from "${buildDir}/libs/core-${SERVICE}.jar"
+            into "${rootDir}/.deploy"
+        }
+
+        // deploy.sh 실행
+        exec {
+            workingDir "${rootDir}/.deploy"
+            commandLine "sh", "deploy.sh", "${SERVICE}"
+        }
+    }
+}
+
 jar.enabled = false
 
 dependencies {
