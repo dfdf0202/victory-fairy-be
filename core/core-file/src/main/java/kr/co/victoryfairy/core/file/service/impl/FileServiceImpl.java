@@ -199,7 +199,7 @@ public class FileServiceImpl implements FileService {
         try {
             String ext = getExtension(file);
             String filePath = orgFile.getParent();
-            String newFileName = orgFile.getName() + "_" + size + "." + ext;
+            String newFileName = orgFile.getName().replace("." + ext, "") + "_" + size + "." + ext;
 
             int height = (int) Math.round(((double) size / (double) image.getWidth(null)) * image.getHeight(null));
             int width = size;
