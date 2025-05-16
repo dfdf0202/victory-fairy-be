@@ -80,7 +80,8 @@ public class GameMatchEntity extends BaseEntity {
     @Comment("사유")
     private String reason;
 
-    @Column
     @Comment("경기 내용 크롤링 여부")
+    @Column(columnDefinition = "bit(1) DEFAULT b'0'")
+    @Builder.Default
     private Boolean isMatchInfoCraw = false;
 }

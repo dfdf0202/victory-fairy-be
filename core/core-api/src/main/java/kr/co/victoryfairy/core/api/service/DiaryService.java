@@ -5,6 +5,6 @@ import kr.co.victoryfairy.core.api.domain.DiaryDomain;
 
 public interface DiaryService {
 
-    DiaryDomain.DiaryDto writeDiary(DiaryDomain.DiaryDto diaryDto);
+    void writeDiary(DiaryDomain.DiaryDto diaryDto);
 
 }

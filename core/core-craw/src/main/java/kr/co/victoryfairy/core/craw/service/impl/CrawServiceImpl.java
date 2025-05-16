@@ -59,6 +59,10 @@ public class CrawServiceImpl implements CrawService {
 
             List<GameMatchEntity> gameEntities = new ArrayList<>();
 
+            var beforeMatches = gameMatchRepository.findBySeason(sYear);
+
+            gameMatchRepository.deleteAll(beforeMatches);
+
             for (int month = startMonth; month <= 12; month++) {
                 String monthStr = String.format("%02d", month);
                 page.selectOption("#ddlMonth", monthStr);
@@ -147,7 +151,8 @@ public class CrawServiceImpl implements CrawService {
                         var homeEntity = teamEntities.get(kboHome.name());
 
                         if (relayTd == null) {
-                            matchStatus = matchDateTime.isAfter(LocalDateTime.now()) ? MatchEnum.MatchStatus.READY : MatchEnum.MatchStatus.CANCELED;
+                            //matchStatus = matchDateTime.isAfter(LocalDateTime.now()) ? MatchEnum.MatchStatus.READY : MatchEnum.MatchStatus.CANCELED;
+                            matchStatus = reason.equals("-") ? MatchEnum.MatchStatus.READY : MatchEnum.MatchStatus.CANCELED;
                             String formattedDate = matchDateTime.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
                             matchId = formattedDate + kboAway + kboHome + 0;
                         } else {
@@ -155,15 +160,21 @@ public class CrawServiceImpl implements CrawService {
                             matchStatus = replayRowText.equals("리뷰") ? MatchEnum.MatchStatus.END : MatchEnum.MatchStatus.READY;
 
                             ElementHandle reviewLink = row.querySelector("td.relay a#btnReview");
-                            if (reviewLink != null) {
-                                String href = reviewLink.getAttribute("href");
+                            ElementHandle previewLink = row.querySelector("td.relay a#btnPreView");
 
-                                if (href != null && href.contains("gameId=")) {
-                                    String[] parts = href.split("gameId=");
-                                    if (parts.length > 1) {
-                                        String[] gameIdSplit = parts[1].split("&");
-                                        matchId = gameIdSplit[0];
-                                    }
+                            String href = "";
+
+                            if (reviewLink != null) {
+                                href = reviewLink.getAttribute("href");
+                            } else if (previewLink != null) {
+                                href = previewLink.getAttribute("href");
+                            }
+
+                            if (href != null && href.contains("gameId=")) {
+                                String[] parts = href.split("gameId=");
+                                if (parts.length > 1) {
+                                    String[] gameIdSplit = parts[1].split("&");
+                                    matchId = gameIdSplit[0];
                                 }
                             }
                         }
@@ -175,7 +186,9 @@ public class CrawServiceImpl implements CrawService {
                             case POST -> null;
                         };
 
-
+                        if (!StringUtils.hasText(matchId)) {
+                            continue;
+                        }
 
                         GameMatchEntity gameMatch = new GameMatchEntity(
                                 matchId

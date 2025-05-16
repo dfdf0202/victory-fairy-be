@@ -35,7 +35,4 @@ public class FileRefEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private RefType refType;
 
-    public void updateRefId(Long refId) {
-        this.refId = refId;
-    }
 }

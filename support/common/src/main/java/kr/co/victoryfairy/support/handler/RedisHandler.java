@@ -1,18 +1,21 @@
 package kr.co.victoryfairy.support.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import kr.co.victoryfairy.support.constant.MessageEnum;
 import kr.co.victoryfairy.support.exception.CustomException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -25,6 +28,7 @@ public class RedisHandler {
         ValueOperations<String, Object> valueOperations = redisTemplate.opsForValue();
         valueOperations.set(key, value);
         System.out.println(valueOperations.get(key));
+        redisTemplate.convertAndSend("", "dfdf");
     }
 
     public void setMap(String key, Map<String, String> map) {
@@ -103,6 +107,34 @@ public class RedisHandler {
      */
     public void deleteHashValue(String hashKey, String key) {
         redisTemplate.opsForHash().delete(hashKey, key);
+    }
+
+    /**
+     * Redis Stream pub
+     */
+    public void pushEvent(String channel, Object obj) {
+        try {
+            Map<String, String> map = objectMapper.convertValue(obj, new TypeReference<>() {});
+            redisTemplate.opsForStream().add(channel, map);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void initEvent(String key, String groupName) {
+        redisTemplate.opsForStream().createGroup(key, ReadOffset.latest(), groupName);
+    }
+
+    public List<MapRecord<String, Object, Object>> getEventMessages(String key, String groupName, String consumer) {
+        return redisTemplate.opsForStream()
+                .read(Consumer.from(groupName, consumer),
+                        StreamReadOptions.empty().block(Duration.ofSeconds(2)).count(10),
+                        StreamOffset.create(key, ReadOffset.lastConsumed()));
+    }
+
+    public void eventKnowEdge(String key, String groupName, String recordId) {
+        redisTemplate.opsForStream().acknowledge(key, groupName, recordId);
+        redisTemplate.opsForStream().delete(key, recordId);
     }
 
 }

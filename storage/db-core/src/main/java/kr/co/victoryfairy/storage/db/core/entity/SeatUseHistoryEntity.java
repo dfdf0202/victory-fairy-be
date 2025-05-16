@@ -32,6 +32,6 @@ public class SeatUseHistoryEntity extends BaseEntity{
     private String seatRow;             // 좌석 열
 
     @Column(name = "seat_number")
-    private String seatNumber;          // 좌석 번호
+    private Short seatNumber;          // 좌석 번호
 
 }

@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Comment;
 
 @Entity(name = "partner")
 @Getter
@@ -17,7 +18,7 @@ public class PartnerEntity extends BaseEntity{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;                    // 함께한 사람 식별자
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "diary_id")
     private DiaryEntity diaryEntity;                // 일기 식별자
 
@@ -26,4 +27,7 @@ public class PartnerEntity extends BaseEntity{
     @Column(name = "team_name")
     private String teamName;            // 함께한 사람의 응원팀
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id")
+    private TeamEntity teamEntity;
 }

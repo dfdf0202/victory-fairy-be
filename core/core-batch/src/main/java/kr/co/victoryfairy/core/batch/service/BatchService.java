@@ -1,4 +1,4 @@
-package kr.co.victoryfairy.core.service;
+package kr.co.victoryfairy.core.batch.service;
 
 public interface BatchService {
 

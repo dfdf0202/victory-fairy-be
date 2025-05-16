@@ -17,6 +17,7 @@ include 'core:core-api'
 include 'core:core-craw'
 include 'core:core-batch'
 include 'core:core-file'
+include 'core:core-event'
 
 include 'storage:db-core'
 include 'tests:api-docs'

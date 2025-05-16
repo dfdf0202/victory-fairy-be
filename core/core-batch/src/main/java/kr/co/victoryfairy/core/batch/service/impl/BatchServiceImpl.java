@@ -1,11 +1,13 @@
-package kr.co.victoryfairy.core.service.impl;
+package kr.co.victoryfairy.core.batch.service.impl;
 
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.ElementHandle;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
+import io.dodn.springboot.core.enums.EventType;
 import io.dodn.springboot.core.enums.MatchEnum;
-import kr.co.victoryfairy.core.service.BatchService;
+import kr.co.victoryfairy.core.batch.model.WriteEventDto;
+import kr.co.victoryfairy.core.batch.service.BatchService;
 import kr.co.victoryfairy.storage.db.core.entity.GameMatchEntity;
 import kr.co.victoryfairy.storage.db.core.entity.HitterRecordEntity;
 import kr.co.victoryfairy.storage.db.core.entity.PitcherRecordEntity;
@@ -152,6 +154,9 @@ public class BatchServiceImpl implements BatchService {
                                 .build();
                         gameMatchRepository.save(matchEntity);
                         redisHandler.deleteMap(id);
+
+                        var writeEventDto = new WriteEventDto(id, null, null, EventType.BATCH);
+                        redisHandler.pushEvent("write_diary", writeEventDto);
                     }
                     case CANCELED -> {
                         matchEntity = matchEntity.toBuilder()

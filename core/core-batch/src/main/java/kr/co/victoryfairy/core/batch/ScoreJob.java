@@ -1,6 +1,6 @@
 package kr.co.victoryfairy.core.batch;
 
-import kr.co.victoryfairy.core.service.BatchService;
+import kr.co.victoryfairy.core.batch.service.BatchService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
