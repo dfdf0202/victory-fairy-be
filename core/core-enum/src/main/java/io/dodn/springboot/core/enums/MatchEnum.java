@@ -71,4 +71,10 @@ public interface MatchEnum {
         }
     }
 
+    enum ResultType {
+        WIN,
+        LOSS,
+        DRAW
+    }
+
 }

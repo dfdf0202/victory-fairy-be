@@ -23,6 +23,10 @@ public class GameRecordEntity extends BaseEntity {
     @JoinColumn(name = "member_id")
     private MemberEntity member;                  // 회원 식별자
 
+    @ManyToOne
+    @JoinColumn(name = "game_match_id")
+    private GameMatchEntity gameMatchEntity;      // 경기 식별자
+
     @Comment("응원 팀 id")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_id")
@@ -49,6 +53,7 @@ public class GameRecordEntity extends BaseEntity {
     private MatchEnum.MatchStatus status;
 
     @Column
-    @Comment("승리여부")
-    private Boolean isWin;
+    @Comment("경기 결과")
+    @Enumerated(EnumType.STRING)
+    private MatchEnum.ResultType resultType;
 }

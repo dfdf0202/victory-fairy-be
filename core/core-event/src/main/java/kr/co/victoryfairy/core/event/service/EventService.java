@@ -66,15 +66,18 @@ public class EventService {
 
         var isWin = myScore > opponentScore;
 
+        var matchResult = (myScore == opponentScore) ? MatchEnum.ResultType.DRAW
+                : (isWin ? MatchEnum.ResultType.WIN : MatchEnum.ResultType.LOSS);
+
         var gameRecordEntity = GameRecordEntity.builder()
                 .member(memberEntity)
                 .teamEntity(teamEntity)
-                .teamName(awayTeam.getName())
+                .teamName(teamEntity.getName())
                 .opponentTeamEntity(isAway ? homeTeam : awayTeam)
-                .opponentTeamName(homeTeam.getName())
+                .opponentTeamName(isAway ? homeTeam.getName() : awayTeam.getName())
                 .stadium(matchEntity.getStadium())
                 .status(matchEntity.getStatus())
-                .isWin(isWin)
+                .resultType(matchResult)
                 .build();
 
         gameRecordRepository.save(gameRecordEntity);
@@ -165,15 +168,19 @@ public class EventService {
 
             var isWin = myScore > opponentScore;
 
+            var matchResult = (myScore == opponentScore) ? MatchEnum.ResultType.DRAW
+                    : (isWin ? MatchEnum.ResultType.WIN : MatchEnum.ResultType.LOSS);
+
             var gameRecordEntity = GameRecordEntity.builder()
                     .member(memberEntity)
                     .teamEntity(teamEntity)
-                    .teamName(awayTeam.getName())
+                    .gameMatchEntity(matchEntity)
+                    .teamName(teamEntity.getName())
                     .opponentTeamEntity(isAway ? homeTeam : awayTeam)
-                    .opponentTeamName(homeTeam.getName())
+                    .opponentTeamName(isAway ? homeTeam.getName() : awayTeam.getName())
                     .stadium(matchEntity.getStadium())
                     .status(matchEntity.getStatus())
-                    .isWin(isWin)
+                    .resultType(matchResult)
                     .build();
 
             gameRecordRepository.save(gameRecordEntity);
