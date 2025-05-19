@@ -41,7 +41,8 @@ public class GameMatchCustomRepositoryImpl extends QuerydslRepositorySupport imp
                         , gameMatchEntity.homeTeamEntity
                         , gameMatchEntity.homeNm
                         , gameMatchEntity.homeScore
-                        , gameMatchEntity.stadium
+                        , gameMatchEntity.stadiumShortName
+                        , gameMatchEntity.stadiumFullName
                         , gameMatchEntity.status
                         , gameMatchEntity.reason
                         , gameMatchEntity.isMatchInfoCraw

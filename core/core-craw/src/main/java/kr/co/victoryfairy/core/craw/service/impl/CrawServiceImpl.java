@@ -117,7 +117,8 @@ public class CrawServiceImpl implements CrawService {
                         String home = "";
                         Short awayScore = null;
                         Short homeScore = null;
-                        String stadium = "";
+                        String stadiumShortName = "";
+                        String stadiumFullName = "";
                         String reason = "";
 
                         List<ElementHandle> tds = row.querySelectorAll("td");
@@ -135,7 +136,8 @@ public class CrawServiceImpl implements CrawService {
                             home = safeInnerText(teamSpans, 2);
                         }
 
-                        stadium = parseStadium(safeInnerText(tds, stadiumIndex));
+                        stadiumShortName = safeInnerText(teamSpans, stadiumIndex);
+                        stadiumFullName = parseStadium(stadiumShortName);
                         reason = safeInnerText(tds, reasonIndex);
 
                         ElementHandle replayElement = row.querySelector("td.relay");
@@ -202,7 +204,8 @@ public class CrawServiceImpl implements CrawService {
                                 ,homeEntity
                                 ,home
                                 ,homeScore
-                                ,stadium
+                                ,stadiumShortName
+                                ,stadiumFullName
                                 ,matchStatus
                                 ,reason
                                 ,false

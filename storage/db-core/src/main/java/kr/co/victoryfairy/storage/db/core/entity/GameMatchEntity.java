@@ -68,8 +68,11 @@ public class GameMatchEntity extends BaseEntity {
     private Short homeScore;
 
     @Column
+    private String stadiumShortName;
+
+    @Column
     @Comment("경기장")
-    private String stadium;
+    private String stadiumFullName;
 
     @Column
     @Comment("경기 상태")

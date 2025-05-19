@@ -124,14 +124,17 @@ public class BatchServiceImpl implements BatchService {
 
                 // Redis 저장 처리
                 if (matchStatus.equals(MatchEnum.MatchStatus.PROGRESS)) {
+                    ElementHandle status = game.querySelector("span.staus");
                     Map<String, String> map = new HashMap<>();
                     map.put("awayImage", awaySrc);
                     map.put("awayScore", awayScore != null ? awayScore.toString() : null);
                     map.put("homeImage", homeSrc);
                     map.put("homeScore", homeScore != null ? homeScore.toString() : null);
-                    redisHandler.setMap(id, map);
+                    map.put("status", status.innerText());
+
+                    redisHandler.pushHash("match_list", id, map);
                 } else {
-                    redisHandler.deleteMap(id);
+                    redisHandler.deleteHash("mach_list", id);
                 }
 
                 var matchEntity = gameMatchRepository.findById(id).orElse(null);
@@ -153,7 +156,6 @@ public class BatchServiceImpl implements BatchService {
                                 .status(matchStatus)
                                 .build();
                         gameMatchRepository.save(matchEntity);
-                        redisHandler.deleteMap(id);
 
                         var writeEventDto = new WriteEventDto(id, null, null, EventType.BATCH);
                         redisHandler.pushEvent("write_diary", writeEventDto);
@@ -164,7 +166,6 @@ public class BatchServiceImpl implements BatchService {
                                 .status(matchStatus)
                                 .build();
                         gameMatchRepository.save(matchEntity);
-                        redisHandler.deleteMap(id);
                     }
                 }
             }
@@ -185,10 +186,6 @@ public class BatchServiceImpl implements BatchService {
         var now = LocalDate.now();
         var matches = gameMatchEntityCustomRepository.findByMatchAt(now);
 
-        if (matches.isEmpty()) {
-            return;
-        }
-
         // status 가 end, isMatchInfoCraw 가 false or null 인 요소
         matches = matches.stream()
                 .filter(entity -> entity.getStatus().equals(MatchEnum.MatchStatus.END) &&
@@ -198,7 +195,18 @@ public class BatchServiceImpl implements BatchService {
         // id 로 match detail 조회
         List<HitterRecordEntity> hitterEntities = new ArrayList<>();
         List<PitcherRecordEntity> pitcherEntities = new ArrayList<>();
-        matches.forEach(entity -> {
+
+        List<HitterRecordEntity> awayHitter = new ArrayList<>();
+        List<PitcherRecordEntity> awayPitcher = new ArrayList<>();
+        List<HitterRecordEntity> homeHitter = new ArrayList<>();
+        List<PitcherRecordEntity> homePitcher = new ArrayList<>();
+
+        for (var entity : matches) {
+
+            if (entity.getIsMatchInfoCraw()) {
+                continue;
+            }
+
             try (Playwright playwright = Playwright.create()) {
                 Browser browser = playwright.chromium().launch();
                 Page page = browser.newPage();
@@ -207,42 +215,63 @@ public class BatchServiceImpl implements BatchService {
 
                 page.waitForSelector("#HitterRank table tbody tr"); // 타자
                 page.waitForSelector("#PitcherRank table tbody tr"); // 투수
-                var awayHitter = this.scrapeHitterTable(page, false, String.valueOf(now.getYear()), entity);
+                awayHitter = this.scrapeHitterEntity(page, false, String.valueOf(now.getYear()), entity);
                 page.waitForTimeout(500);
-                var awayPitcher = this.scrapPitcherTable(page, false, String.valueOf(now.getYear()), entity);
+                awayPitcher = this.scrapPitcherEntity(page, false, String.valueOf(now.getYear()), entity);
 
                 page.click("#liveRecordSubTabB");
-                page.waitForTimeout(1000); // 탭 전환 후 데이터 로딩 기다림
+                page.waitForTimeout(1500); // 탭 전환 후 데이터 로딩 기다림
 
                 page.waitForSelector("#HitterRank table tbody tr"); // 타자
                 page.waitForSelector("#PitcherRank table tbody tr"); // 투수
-                var homeHitter = this.scrapeHitterTable(page, true, String.valueOf(now.getYear()), entity);
+                homeHitter = this.scrapeHitterEntity(page, true, String.valueOf(now.getYear()), entity);
                 page.waitForTimeout(500);
-                var homePitcher = this.scrapPitcherTable(page, true, String.valueOf(now.getYear()), entity);
+                homePitcher = this.scrapPitcherEntity(page, true, String.valueOf(now.getYear()), entity);
 
-                hitterEntities.addAll(awayHitter);
-                hitterEntities.addAll(homeHitter);
-                pitcherEntities.addAll(awayPitcher);
-                pitcherEntities.addAll(homePitcher);
+                var awayHitterMap = scrapeHitterMap(page, false, String.valueOf(now.getYear()), entity);
+                var awayPitcherMap = scrapPitcherMap(page, false, String.valueOf(now.getYear()), entity);
+                var homeHitterMap = scrapeHitterMap(page, true, String.valueOf(now.getYear()), entity);
+                var homePitcherMap = scrapPitcherMap(page, true, String.valueOf(now.getYear()), entity);
 
+                redisHandler.pushHash("away_hitter", entity.getId(), awayHitterMap);
+                redisHandler.pushHash("away_pitcher", entity.getId(), awayPitcherMap);
+
+                redisHandler.pushHash("home_hitter", entity.getId(), homeHitterMap);
+                redisHandler.pushHash("home_pitcher", entity.getId(), homePitcherMap);
+
+            } catch (Exception e) {
+                slackUtils.message(entity.getId() + " 상세 불러오는 중 에러 발생");
+                e.printStackTrace();
+            }
+
+            if (entity.getStatus().equals(MatchEnum.MatchStatus.END)) {
                 // 저장 후 game_match is_match_info_craw true 처리
                 entity = entity.toBuilder()
                         .isMatchInfoCraw(true)
                         .build();
 
                 gameMatchRepository.save(entity);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
 
-            hitterRecordRepository.saveAll(hitterEntities);
-            pitcherRecordRepository.saveAll(pitcherEntities);
-        });
+                hitterEntities.addAll(awayHitter);
+                hitterEntities.addAll(homeHitter);
+                pitcherEntities.addAll(awayPitcher);
+                pitcherEntities.addAll(homePitcher);
+
+                hitterRecordRepository.saveAll(hitterEntities);
+                pitcherRecordRepository.saveAll(pitcherEntities);
+
+                redisHandler.deleteHash("away_hitter", entity.getId());
+                redisHandler.deleteHash("away_pitcher", entity.getId());
+                redisHandler.deleteHash("home_hitter", entity.getId());
+                redisHandler.deleteHash("home_pitcher", entity.getId());
+            }
+        }
+
 
         logger.info("========== Match Info Craw  END ==========");
     }
 
-    private static List<HitterRecordEntity> scrapeHitterTable(Page page, Boolean isHome, String year, GameMatchEntity gameMatchEntity) {
+    private static List<HitterRecordEntity> scrapeHitterEntity(Page page, Boolean isHome, String year, GameMatchEntity gameMatchEntity) {
         List<ElementHandle> infoRows = page.querySelectorAll("#HitterRank table.tbl-new.fixed tbody tr");
         List<ElementHandle> statRows = page.querySelectorAll("#HitterRank .scroll-box table.tbl-new tbody tr");
 
@@ -292,7 +321,56 @@ public class BatchServiceImpl implements BatchService {
         return hitterEntities;
     }
 
-    private static List<PitcherRecordEntity> scrapPitcherTable(Page page, Boolean isHome, String year, GameMatchEntity gameMatchEntity) {
+    private static List<Map<String, String>> scrapeHitterMap(Page page, Boolean isHome, String year, GameMatchEntity gameMatchEntity) {
+        List<ElementHandle> infoRows = page.querySelectorAll("#HitterRank table.tbl-new.fixed tbody tr");
+        List<ElementHandle> statRows = page.querySelectorAll("#HitterRank .scroll-box table.tbl-new tbody tr");
+
+        int count = Math.min(infoRows.size(), statRows.size());
+        List<Map<String, String>> result = new ArrayList<>();
+
+        for (int i = 0; i < count; i++) {
+            ElementHandle infoRow = infoRows.get(i);
+            ElementHandle statRow = statRows.get(i);
+
+            var turn = Short.parseShort(infoRow.querySelector("td").innerText().trim());
+
+            ElementHandle nameCell = infoRow.querySelector("td.name");
+            String name = "", position = "";
+            if (nameCell != null) {
+                ElementHandle p = nameCell.querySelector("p");
+                ElementHandle span = nameCell.querySelector("span");
+                name = (p != null) ? p.innerText().trim() : "";
+                position = (span != null) ? span.innerText().trim() : "";
+            }
+
+            List<ElementHandle> stats = statRow.querySelectorAll("td");
+            var hitCount = Short.parseShort(stats.get(0).innerText());
+            var score = Short.parseShort(stats.get(1).innerText());
+            var hit = Short.parseShort(stats.get(2).innerText());
+            var homeRun = Short.parseShort(stats.get(3).innerText());
+            var hitScore = Short.parseShort(stats.get(4).innerText());
+            var ballFour = Short.parseShort(stats.get(5).innerText());
+            var strikeOut = Short.parseShort(stats.get(6).innerText());
+
+            Map<String, String> map = new HashMap<>();
+            map.put("turn", String.valueOf(turn));
+            map.put("name", name);
+            map.put("position", position);
+            map.put("hitCount", String.valueOf(hitCount));
+            map.put("score", String.valueOf(score));
+            map.put("hit", String.valueOf(hit));
+            map.put("homeRun", String.valueOf(homeRun));
+            map.put("hitScore", String.valueOf(hitScore));
+            map.put("ballFour", String.valueOf(ballFour));
+            map.put("strikeOut", String.valueOf(strikeOut));
+
+            result.add(map);
+        }
+
+        return result;
+    }
+
+    private static List<PitcherRecordEntity> scrapPitcherEntity(Page page, Boolean isHome, String year, GameMatchEntity gameMatchEntity) {
         List<ElementHandle> infoRows = page.querySelectorAll("#PitcherRank table.tbl-new.fixed tbody tr");
         List<ElementHandle> statRows = page.querySelectorAll("#PitcherRank .scroll-box table.tbl-new tbody tr");
 
@@ -341,5 +419,54 @@ public class BatchServiceImpl implements BatchService {
         }
 
         return pitcherEntities;
+    }
+
+    private static List<Map<String, String>> scrapPitcherMap(Page page, Boolean isHome, String year, GameMatchEntity gameMatchEntity) {
+        List<ElementHandle> infoRows = page.querySelectorAll("#PitcherRank table.tbl-new.fixed tbody tr");
+        List<ElementHandle> statRows = page.querySelectorAll("#PitcherRank .scroll-box table.tbl-new tbody tr");
+
+        int count = Math.min(infoRows.size(), statRows.size());
+
+        List<Map<String, String>> result = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            ElementHandle infoRow = infoRows.get(i);
+            ElementHandle statRow = statRows.get(i);
+
+            var turn = Short.valueOf(infoRow.querySelector("td").innerText().trim());
+            ElementHandle nameCell = infoRow.querySelector("td.name");
+            String name = "";
+            String position = "";
+            if (nameCell != null) {
+                ElementHandle p = nameCell.querySelector("p");
+                ElementHandle span = nameCell.querySelector("span");
+                name = (p != null) ? p.innerText().trim() : "";
+                position = (span != null) ? span.innerText().trim() : "";
+            }
+
+            List<ElementHandle> stats = statRow.querySelectorAll("td");
+            var inning = stats.get(0).innerText();
+            var pitching = Short.parseShort(stats.get(1).innerText());
+            var hit = Short.parseShort(stats.get(4).innerText());
+            var homeRun = Short.parseShort(stats.get(5).innerText());
+            var ballFour = Short.parseShort(stats.get(6).innerText());
+            var strikeOut = Short.parseShort(stats.get(7).innerText());
+            var score = Short.parseShort(stats.get(8).innerText());
+
+            Map<String, String> map = new HashMap<>();
+            map.put("turn", String.valueOf(turn));
+            map.put("name", name);
+            map.put("position", position);
+            map.put("inning", inning);
+            map.put("pitching", String.valueOf(pitching));
+            map.put("ballFour", String.valueOf(ballFour));
+            map.put("strikeOut", String.valueOf(strikeOut));
+            map.put("hit", String.valueOf(hit));
+            map.put("homeRun", String.valueOf(homeRun));
+            map.put("score", String.valueOf(score));
+
+           result.add(map);
+        }
+
+        return result;
     }
 }

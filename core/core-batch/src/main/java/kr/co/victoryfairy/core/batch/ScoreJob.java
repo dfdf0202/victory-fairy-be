@@ -9,14 +9,17 @@ public class ScoreJob {
 
     private final BatchService batchService;
 
-    public ScoreJob(BatchService batchService) {
+    public ScoreJob(BatchService batchService)  {
         this.batchService = batchService;
     }
 
     @Scheduled(cron = "${batch.check.score}")
     public void checkScore() {
         batchService.batchScore();
-        batchService.batchMatchInfo();
     }
 
+    @Scheduled(cron = "${batch.check.info}")
+    public void checkInfo() {
+        batchService.batchMatchInfo();
+    }
 }

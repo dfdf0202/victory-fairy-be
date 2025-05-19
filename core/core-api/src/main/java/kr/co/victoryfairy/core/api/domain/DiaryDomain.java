@@ -29,10 +29,10 @@ public interface DiaryDomain {
             @Schema(description = "기분", implementation = DiaryEnum.MoodType.class)
             DiaryEnum.MoodType mood,
 
-            @Schema(description = "음식 리스트", example = "[치킨,맥주]")
+            @Schema(description = "음식 리스트", example = "[\"맥주\", \"치킨\"]")
             List<String> foodNameList,          // 음식 리스트
 
-            @Schema(description = "좌석 정보", example = "SeatUseHistoryDto")
+            @Schema(description = "좌석 정보")
             SeatUseHistoryDto seat,             // 좌석
 
             @Schema(description = "메모")
@@ -52,19 +52,13 @@ public interface DiaryDomain {
 
     record SeatUseHistoryDto(
             @Schema(description = "좌석 식별자", example = "1")
-            Long seatId,           // 좌석 식별자
+            Long id,           // 좌석 식별자
 
-            @Schema(description = "좌석 블록", example = "217")
-            String seatBlock,      // 좌석 블록
+            @Schema(description = "좌석 이름")
+            Short name,     // 좌석 번호
 
-            @Schema(description = "좌석 열")
-            String seatRow,        // 좌석 열
-
-            @Schema(description = "좌석 번호")
-            Short seatNumber,     // 좌석 번호
-
-            @Schema(description = "좌석 리뷰", example = "[탁 트인 시야, 넓은 공간]")
-            List<String> seatReview // 좌석 리뷰
+            @Schema(description = "좌석 리뷰", example = "[\"탁 트인 시야\", \"넓은 공간\"]")
+            List<String> desc // 좌석 리뷰
     ) {
     }
 

@@ -137,4 +137,17 @@ public class RedisHandler {
         redisTemplate.opsForStream().delete(key, recordId);
     }
 
+    public void pushHash(String key, String id, Object data) {
+        try {
+            String json = objectMapper.writeValueAsString(data);
+            redisTemplate.opsForHash().put(key, id, json); // 덮어쓰기
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Redis JSON 직렬화 실패", e);
+        }
+    }
+
+    public void deleteHash(String key, String id) {
+        redisTemplate.opsForHash().delete(key, id);
+    }
+
 }
