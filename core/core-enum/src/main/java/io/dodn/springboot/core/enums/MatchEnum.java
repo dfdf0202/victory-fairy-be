@@ -72,9 +72,18 @@ public interface MatchEnum {
     }
 
     enum ResultType {
-        WIN,
-        LOSS,
-        DRAW
+        WIN("승"),
+        LOSS("패"),
+        DRAW("무")
+        ;
+
+        private String desc;
+
+        ResultType(String desc) { this.desc = desc; }
+
+        public String getDesc() {
+            return desc;
+        }
     }
 
 }

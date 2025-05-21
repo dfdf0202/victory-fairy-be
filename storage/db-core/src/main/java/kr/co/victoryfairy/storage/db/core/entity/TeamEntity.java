@@ -18,6 +18,9 @@ public class TeamEntity extends BaseEntity {
     @Comment("kbo 팀명")
     private String kboNm;
 
+    @Column
+    private String label;
+
     public TeamEntity() {
     }
 
@@ -37,5 +40,9 @@ public class TeamEntity extends BaseEntity {
 
     public String getKboNm() {
         return kboNm;
+    }
+
+    public String getLabel() {
+        return label;
     }
 }

@@ -19,10 +19,9 @@ public class StadiumEntity extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;            // 경기장 식별자
+    private Long id;
 
-    private String name;        // 이름
-    private String region;      // 지역
-    private String season;      // 시즌
-
+    private String fullName;
+    private String shortName;
+    private String region;
 }

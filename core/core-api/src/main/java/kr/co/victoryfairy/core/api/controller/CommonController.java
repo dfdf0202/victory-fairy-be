@@ -12,18 +12,19 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@Tag(name = "Team", description = "팀")
+@Tag(name = "Common", description = "공통")
 @RestController
-@RequestMapping("/team")
+@RequestMapping("/common")
 @RequiredArgsConstructor
-public class TeamController {
+public class CommonController {
 
     private final TeamService teamService;
 
     @Operation(summary = "팀 전체 목록 불러오기")
-    @GetMapping
+    @GetMapping("/team")
     public CustomResponse<List<TeamDomain.TeamListResponse>> findAll() {
         var response = teamService.findAll();
         return CustomResponse.ok(response);
     }
+
 }

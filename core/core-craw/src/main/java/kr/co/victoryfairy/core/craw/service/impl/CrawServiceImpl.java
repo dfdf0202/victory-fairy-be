@@ -7,14 +7,8 @@ import com.microsoft.playwright.Playwright;
 import io.dodn.springboot.core.enums.MatchEnum;
 import io.dodn.springboot.core.enums.TeamEnum;
 import kr.co.victoryfairy.core.craw.service.CrawService;
-import kr.co.victoryfairy.storage.db.core.entity.GameMatchEntity;
-import kr.co.victoryfairy.storage.db.core.entity.HitterRecordEntity;
-import kr.co.victoryfairy.storage.db.core.entity.PitcherRecordEntity;
-import kr.co.victoryfairy.storage.db.core.entity.TeamEntity;
-import kr.co.victoryfairy.storage.db.core.repository.GameMatchRepository;
-import kr.co.victoryfairy.storage.db.core.repository.HitterRecordRepository;
-import kr.co.victoryfairy.storage.db.core.repository.PitcherRecordRepository;
-import kr.co.victoryfairy.storage.db.core.repository.TeamRepository;
+import kr.co.victoryfairy.storage.db.core.entity.*;
+import kr.co.victoryfairy.storage.db.core.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -29,13 +23,16 @@ import java.util.stream.Collectors;
 @Service
 public class CrawServiceImpl implements CrawService {
     private final TeamRepository teamRepository;
+    private final StadiumRepository stadiumRepository;
     private final GameMatchRepository gameMatchRepository;
     private final HitterRecordRepository hitterRecordRepository;
     private final PitcherRecordRepository pitcherRecordRepository;
 
-    public CrawServiceImpl(TeamRepository teamRepository, GameMatchRepository gameMatchRepository,
-                           HitterRecordRepository hitterRecordRepository, PitcherRecordRepository pitcherRecordRepository) {
+    public CrawServiceImpl(TeamRepository teamRepository, StadiumRepository stadiumRepository,
+                           GameMatchRepository gameMatchRepository, HitterRecordRepository hitterRecordRepository,
+                           PitcherRecordRepository pitcherRecordRepository) {
         this.teamRepository = teamRepository;
+        this.stadiumRepository = stadiumRepository;
         this.gameMatchRepository = gameMatchRepository;
         this.hitterRecordRepository = hitterRecordRepository;
         this.pitcherRecordRepository = pitcherRecordRepository;
@@ -56,6 +53,9 @@ public class CrawServiceImpl implements CrawService {
 
             var teamEntities = teamRepository.findAll().stream()
                     .collect(Collectors.toMap(TeamEntity::getKboNm, entity -> entity));
+
+            var stadiumEntities = stadiumRepository.findAll().stream()
+                    .collect(Collectors.toMap(StadiumEntity::getRegion, entity -> entity));
 
             List<GameMatchEntity> gameEntities = new ArrayList<>();
 
@@ -124,6 +124,7 @@ public class CrawServiceImpl implements CrawService {
                         List<ElementHandle> tds = row.querySelectorAll("td");
 
                         int stadiumIndex = (tds.size() == 9) ? 7 : 6;
+                        //int stadiumIndex = 8;
                         int reasonIndex = stadiumIndex + 1;
 
                         if (teamSpans.size() > 3) {
@@ -136,8 +137,19 @@ public class CrawServiceImpl implements CrawService {
                             home = safeInnerText(teamSpans, 2);
                         }
 
-                        stadiumShortName = safeInnerText(teamSpans, stadiumIndex);
-                        stadiumFullName = parseStadium(stadiumShortName);
+                        stadiumShortName = safeInnerText(tds, stadiumIndex);
+                        //stadiumFullName = parseStadium(stadiumShortName);
+
+                        if (stadiumShortName.equals("대전")) {
+                            if (sYear.equals(LocalDateTime.now().getYear())) {
+                                stadiumShortName = "대전(신)";
+                            }else {
+                                stadiumShortName = "대전(구)";
+                            }
+                        }
+
+                        var stadiumEntity = stadiumEntities.get(stadiumShortName);
+
                         reason = safeInnerText(tds, reasonIndex);
 
                         ElementHandle replayElement = row.querySelector("td.relay");
@@ -204,8 +216,7 @@ public class CrawServiceImpl implements CrawService {
                                 ,homeEntity
                                 ,home
                                 ,homeScore
-                                ,stadiumShortName
-                                ,stadiumFullName
+                                ,stadiumEntity
                                 ,matchStatus
                                 ,reason
                                 ,false

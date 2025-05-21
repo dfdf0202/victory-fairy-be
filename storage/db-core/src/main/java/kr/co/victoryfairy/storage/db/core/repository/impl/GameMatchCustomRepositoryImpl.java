@@ -15,6 +15,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import static kr.co.victoryfairy.storage.db.core.entity.QGameMatchEntity.gameMatchEntity;
+import static kr.co.victoryfairy.storage.db.core.entity.QStadiumEntity.stadiumEntity;
 
 @Repository
 public class GameMatchCustomRepositoryImpl extends QuerydslRepositorySupport implements GameMatchCustomRepository {
@@ -41,13 +42,13 @@ public class GameMatchCustomRepositoryImpl extends QuerydslRepositorySupport imp
                         , gameMatchEntity.homeTeamEntity
                         , gameMatchEntity.homeNm
                         , gameMatchEntity.homeScore
-                        , gameMatchEntity.stadiumShortName
-                        , gameMatchEntity.stadiumFullName
+                        , stadiumEntity
                         , gameMatchEntity.status
                         , gameMatchEntity.reason
                         , gameMatchEntity.isMatchInfoCraw
                 ))
                 .from(gameMatchEntity)
+                .leftJoin(stadiumEntity).on(gameMatchEntity.stadiumEntity.id.eq(stadiumEntity.id))
                 .where(this.eqMatchAt(matchAt))
                 .fetch();
     }

@@ -1,5 +1,6 @@
 package kr.co.victoryfairy.storage.db.core.entity;
 
+import io.dodn.springboot.core.enums.DiaryEnum;
 import io.dodn.springboot.core.enums.MatchEnum;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -23,7 +24,11 @@ public class GameRecordEntity extends BaseEntity {
     @JoinColumn(name = "member_id")
     private MemberEntity member;                  // 회원 식별자
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "diary_id")
+    private DiaryEntity diaryEntity;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "game_match_id")
     private GameMatchEntity gameMatchEntity;      // 경기 식별자
 
@@ -43,9 +48,15 @@ public class GameRecordEntity extends BaseEntity {
     @Column
     private String opponentTeamName;
 
-    @Column
     @Comment("경기장")
-    private String stadium;
+    @JoinColumn(name = "stadium_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private StadiumEntity stadiumEntity;
+
+    @Column
+    @Comment("관람 타입")
+    @Enumerated(EnumType.STRING)
+    private DiaryEnum.ViewType viewType;
 
     @Column
     @Comment("경기 상태")
@@ -56,4 +67,6 @@ public class GameRecordEntity extends BaseEntity {
     @Comment("경기 결과")
     @Enumerated(EnumType.STRING)
     private MatchEnum.ResultType resultType;
+
+    private String season;
 }

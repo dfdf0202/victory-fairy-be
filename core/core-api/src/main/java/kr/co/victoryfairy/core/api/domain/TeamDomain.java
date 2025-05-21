@@ -8,8 +8,11 @@ public interface TeamDomain {
     record TeamListResponse(
             @Schema(description = "team id")
             Long id,
-            @Schema(description = "팀명")
-            String name
-    ) {}
 
+            @Schema(description = "팀명")
+            String name,
+
+            @Schema(description = "라벨")
+            String label
+    ) {}
 }

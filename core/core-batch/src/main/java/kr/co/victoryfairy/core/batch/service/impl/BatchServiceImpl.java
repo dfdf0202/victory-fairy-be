@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -58,6 +59,7 @@ public class BatchServiceImpl implements BatchService {
         logger.info("========== Batch  Start ==========");
 
         var id = "";
+        var formattedDate = "";
         try (Playwright playwright = Playwright.create()) {
             Browser browser = playwright.chromium().launch();
             Page page = browser.newPage();
@@ -68,7 +70,7 @@ public class BatchServiceImpl implements BatchService {
             List<ElementHandle> gameElements = page.querySelectorAll("ul#now > li.list");
 
             String dateText = page.querySelector("#lblGameDate").innerText();
-            String formattedDate = dateText.replaceAll("[^0-9]", "");
+            formattedDate = dateText.replaceAll("[^0-9]", "");
 
             if (gameElements.isEmpty()) return;
 
@@ -122,23 +124,30 @@ public class BatchServiceImpl implements BatchService {
 
                 id = formattedDate + awayTeamName + homeTeamName + matchOrder;
 
-                // Redis 저장 처리
-                if (matchStatus.equals(MatchEnum.MatchStatus.PROGRESS)) {
-                    ElementHandle status = game.querySelector("span.staus");
-                    Map<String, String> map = new HashMap<>();
-                    map.put("awayImage", awaySrc);
-                    map.put("awayScore", awayScore != null ? awayScore.toString() : null);
-                    map.put("homeImage", homeSrc);
-                    map.put("homeScore", homeScore != null ? homeScore.toString() : null);
-                    map.put("status", status.innerText());
-
-                    redisHandler.pushHash("match_list", id, map);
-                } else {
-                    redisHandler.deleteHash("mach_list", id);
-                }
-
                 var matchEntity = gameMatchRepository.findById(id).orElse(null);
                 if (matchEntity == null) continue;
+                var stadiumEntity = matchEntity.getStadiumEntity();
+
+                // Redis 저장 처리
+                ElementHandle status = game.querySelector("span.staus");
+                Map<String, Object> map = new HashMap<>();
+
+                String time = matchEntity.getMatchAt().format(DateTimeFormatter.ofPattern("HH:mm"));
+
+                map.put("data", formattedDate);
+                map.put("time", time);
+                map.put("awayId", matchEntity.getAwayTeamEntity().getId());
+                map.put("awayImage", awaySrc);
+                map.put("awayScore", awayScore != null ? awayScore : null);
+                map.put("homeId", matchEntity.getHomeTeamEntity().getId());
+                map.put("homeImage", homeSrc);
+                map.put("homeScore", homeScore != null ? homeScore : null);
+                map.put("status", matchStatus);
+                map.put("statusDetail", status.innerText());
+                map.put("stadium", stadiumEntity.getFullName());
+                map.put("stadiumId", stadiumEntity.getId());
+
+                redisHandler.pushHash(formattedDate + "_match_list", id, map);
                 // 진행 예정인 대회 진행중 처리
                 if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.READY)) {
                     matchEntity = matchEntity.toBuilder()
@@ -166,6 +175,8 @@ public class BatchServiceImpl implements BatchService {
                                 .status(matchStatus)
                                 .build();
                         gameMatchRepository.save(matchEntity);
+                        var writeEventDto = new WriteEventDto(id, null, null, EventType.BATCH);
+                        redisHandler.pushEvent("write_diary", writeEventDto);
                     }
                 }
             }
@@ -175,6 +186,15 @@ public class BatchServiceImpl implements BatchService {
         } catch (Exception e) {
             e.printStackTrace();
             slackUtils.message(id + " 점수 불러오는 중 에러 발생");
+        }
+
+        var now = LocalDate.now();
+        var todayMatches = gameMatchEntityCustomRepository.findByMatchAt(now);
+        boolean noProgressMatch = todayMatches.stream()
+                .noneMatch(match -> match.getStatus() == MatchEnum.MatchStatus.PROGRESS);
+
+        if (noProgressMatch) {
+            redisHandler.deleteHash(formattedDate + "_match_list");
         }
     }
 
@@ -188,8 +208,7 @@ public class BatchServiceImpl implements BatchService {
 
         // status 가 end, isMatchInfoCraw 가 false or null 인 요소
         matches = matches.stream()
-                .filter(entity -> entity.getStatus().equals(MatchEnum.MatchStatus.END) &&
-                        (entity.getIsMatchInfoCraw() == null || !entity.getIsMatchInfoCraw()))
+                .filter(entity -> (entity.getIsMatchInfoCraw() == null || !entity.getIsMatchInfoCraw()))
                 .toList();
 
         // id 로 match detail 조회
@@ -203,7 +222,7 @@ public class BatchServiceImpl implements BatchService {
 
         for (var entity : matches) {
 
-            if (entity.getIsMatchInfoCraw()) {
+            if (entity.getStatus().equals(MatchEnum.MatchStatus.READY) || entity.getIsMatchInfoCraw()) {
                 continue;
             }
 
@@ -216,8 +235,10 @@ public class BatchServiceImpl implements BatchService {
                 page.waitForSelector("#HitterRank table tbody tr"); // 타자
                 page.waitForSelector("#PitcherRank table tbody tr"); // 투수
                 awayHitter = this.scrapeHitterEntity(page, false, String.valueOf(now.getYear()), entity);
+                var awayHitterMap = scrapeHitterMap(page, false, String.valueOf(now.getYear()), entity);
                 page.waitForTimeout(500);
                 awayPitcher = this.scrapPitcherEntity(page, false, String.valueOf(now.getYear()), entity);
+                var awayPitcherMap = scrapPitcherMap(page, false, String.valueOf(now.getYear()), entity);
 
                 page.click("#liveRecordSubTabB");
                 page.waitForTimeout(1500); // 탭 전환 후 데이터 로딩 기다림
@@ -225,12 +246,9 @@ public class BatchServiceImpl implements BatchService {
                 page.waitForSelector("#HitterRank table tbody tr"); // 타자
                 page.waitForSelector("#PitcherRank table tbody tr"); // 투수
                 homeHitter = this.scrapeHitterEntity(page, true, String.valueOf(now.getYear()), entity);
+                var homeHitterMap = scrapeHitterMap(page, true, String.valueOf(now.getYear()), entity);
                 page.waitForTimeout(500);
                 homePitcher = this.scrapPitcherEntity(page, true, String.valueOf(now.getYear()), entity);
-
-                var awayHitterMap = scrapeHitterMap(page, false, String.valueOf(now.getYear()), entity);
-                var awayPitcherMap = scrapPitcherMap(page, false, String.valueOf(now.getYear()), entity);
-                var homeHitterMap = scrapeHitterMap(page, true, String.valueOf(now.getYear()), entity);
                 var homePitcherMap = scrapPitcherMap(page, true, String.valueOf(now.getYear()), entity);
 
                 redisHandler.pushHash("away_hitter", entity.getId(), awayHitterMap);

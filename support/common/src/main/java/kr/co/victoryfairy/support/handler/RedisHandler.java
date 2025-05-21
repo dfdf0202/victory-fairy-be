@@ -15,6 +15,7 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -150,4 +151,24 @@ public class RedisHandler {
         redisTemplate.opsForHash().delete(key, id);
     }
 
+    public void deleteHash(String key) {
+        redisTemplate.delete(key);
+    }
+
+    public Map<String, Map<String, Object>> getHashMap(String key) {
+        Map<Object, Object> entries = redisTemplate.opsForHash().entries(key);
+        Map<String, Map<String, Object>> result = new HashMap<>();
+
+        entries.forEach((rKey, value) -> {
+            try {
+                String id = rKey.toString();
+                Map<String, Object> matchData = objectMapper.readValue(value.toString(), new TypeReference<>() {});
+                result.put(id, matchData);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Redis JSON 역직렬화 실패", e);
+            }
+        });
+
+        return result;
+    }
 }

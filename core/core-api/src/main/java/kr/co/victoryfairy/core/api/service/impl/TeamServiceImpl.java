@@ -20,7 +20,7 @@ public class TeamServiceImpl implements TeamService {
         List<TeamEntity> team = teamRepository.findAll();
         return team.stream()
                 .map(entity -> {
-                    return new TeamDomain.TeamListResponse(entity.getId(), entity.getName());
+                    return new TeamDomain.TeamListResponse(entity.getId(), entity.getName(), entity.getLabel());
                 }).toList();
     }
 }

@@ -67,12 +67,10 @@ public class GameMatchEntity extends BaseEntity {
     @Comment("홈 스코어")
     private Short homeScore;
 
-    @Column
-    private String stadiumShortName;
-
-    @Column
     @Comment("경기장")
-    private String stadiumFullName;
+    @JoinColumn(name = "stadium_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private StadiumEntity stadiumEntity;
 
     @Column
     @Comment("경기 상태")
