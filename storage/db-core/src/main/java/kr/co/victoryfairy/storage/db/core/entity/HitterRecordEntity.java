@@ -52,7 +52,7 @@ public class HitterRecordEntity extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "game_match_id")
-    private GameMatchEntity gameMatchEntities;
+    private GameMatchEntity gameMatchEntity;
 
     @Column
     @Comment("시즌")
@@ -67,7 +67,7 @@ public class HitterRecordEntity extends BaseEntity {
 
     public HitterRecordEntity(Short turn, String name, String position, Short hitCount,
                               Short score, Short hit, Short homeRun, Short hitScore,
-                              Short ballFour, Short strikeOut, GameMatchEntity gameMatchEntities, String season, Boolean isHome) {
+                              Short ballFour, Short strikeOut, GameMatchEntity gameMatchEntity, String season, Boolean isHome) {
         this.turn = turn;
         this.name = name;
         this.position = position;
@@ -78,7 +78,7 @@ public class HitterRecordEntity extends BaseEntity {
         this.hitScore = hitScore;
         this.ballFour = ballFour;
         this.strikeOut = strikeOut;
-        this.gameMatchEntities = gameMatchEntities;
+        this.gameMatchEntity = gameMatchEntity;
         this.season = season;
         this.isHome = isHome;
     }
@@ -127,8 +127,8 @@ public class HitterRecordEntity extends BaseEntity {
         return strikeOut;
     }
 
-    public GameMatchEntity getGameMatchEntities() {
-        return gameMatchEntities;
+    public GameMatchEntity getGameMatchEntity() {
+        return gameMatchEntity;
     }
 
     public String getSeason() {

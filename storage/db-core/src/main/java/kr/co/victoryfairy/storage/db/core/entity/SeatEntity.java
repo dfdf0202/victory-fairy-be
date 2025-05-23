@@ -23,4 +23,5 @@ public class SeatEntity extends BaseEntity{
 
     private String name;            // 이름
 
+    private String season;
 }

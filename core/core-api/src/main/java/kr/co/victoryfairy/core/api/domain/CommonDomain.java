@@ -2,9 +2,9 @@ package kr.co.victoryfairy.core.api.domain;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-public interface TeamDomain {
+public interface CommonDomain {
 
-    @Schema(name = "Team.TeamListResponse")
+    @Schema(name = "Common.TeamListResponse")
     record TeamListResponse(
             @Schema(description = "team id")
             Long id,
@@ -14,5 +14,13 @@ public interface TeamDomain {
 
             @Schema(description = "라벨")
             String label
+    ) {}
+
+    record SeatListResponse(
+            @Schema(description = "seat id")
+            Long id,
+
+            @Schema(description = "좌석명")
+            String name
     ) {}
 }

@@ -48,8 +48,8 @@ public class DiaryEntity extends BaseEntity{
     @Enumerated(EnumType.STRING)
     private DiaryEnum.MoodType moodType;
 
-    @Column(name = "memo")
-    private String memo;                    // 메모
+    @Column(name = "내용")
+    private String content;                    // 메모
 
     @Column(columnDefinition = "bit(1) DEFAULT b'0'")
     @Builder.Default

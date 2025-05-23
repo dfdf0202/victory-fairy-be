@@ -35,8 +35,8 @@ public interface DiaryDomain {
             @Schema(description = "좌석 정보")
             SeatUseHistoryDto seat,             // 좌석
 
-            @Schema(description = "메모")
-            String memo,
+            @Schema(description = "내용")
+            String content,
 
             @Schema(description = "함께한 사람 리스트")
             List<PartnerDto> partnerList       // 함께한 사람 리스트

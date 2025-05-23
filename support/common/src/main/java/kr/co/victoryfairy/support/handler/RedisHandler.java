@@ -171,4 +171,21 @@ public class RedisHandler {
 
         return result;
     }
+
+    public Map<String, List<Object>> getHashMapList(String key) {
+        Map<Object, Object> entries = redisTemplate.opsForHash().entries(key);
+        Map<String, List<Object>> result = new HashMap<>();
+
+        entries.forEach((rKey, value) -> {
+            try {
+                String id = rKey.toString();
+                List<Object> matchData = objectMapper.readValue(value.toString(), new TypeReference<>() {});
+                result.put(id, matchData);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException("Redis JSON 역직렬화 실패", e);
+            }
+        });
+
+        return result;
+    }
 }

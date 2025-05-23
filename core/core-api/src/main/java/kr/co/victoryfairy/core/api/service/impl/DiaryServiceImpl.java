@@ -63,7 +63,7 @@ public class DiaryServiceImpl implements DiaryService {
                 .gameMatchEntity(gameMatchEntity)
                 .weatherType(diaryDto.weather())
                 .moodType(diaryDto.mood())
-                .memo(diaryDto.memo())
+                .content(diaryDto.content())
                 .build();
         diaryRepository.save(diaryEntity);
 

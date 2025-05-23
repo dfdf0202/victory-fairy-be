@@ -9,4 +9,6 @@ public interface MatchService {
     MatchDomain.MatchListResponse findList(LocalDate date);
 
     MatchDomain.MatchInfoResponse findById(String id);
+
+    MatchDomain.RecordResponse findRecordById(String id);
 }

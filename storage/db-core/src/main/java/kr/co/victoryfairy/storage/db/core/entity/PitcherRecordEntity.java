@@ -52,7 +52,7 @@ public class PitcherRecordEntity extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "game_match_id")
-    private GameMatchEntity gameMatchEntities;
+    private GameMatchEntity gameMatchEntity;
 
     @Column
     @Comment("시즌")
@@ -78,7 +78,7 @@ public class PitcherRecordEntity extends BaseEntity {
         this.hit = hit;
         this.homeRun = homeRun;
         this.score = score;
-        this.gameMatchEntities = gameMatchEntities;
+        this.gameMatchEntity = gameMatchEntities;
         this.season = season;
         this.isHome = isHome;
     }
@@ -131,8 +131,8 @@ public class PitcherRecordEntity extends BaseEntity {
         return season;
     }
 
-    public GameMatchEntity getGameMatchEntities() {
-        return gameMatchEntities;
+    public GameMatchEntity getGameMatchEntity() {
+        return gameMatchEntity;
     }
 
     public Boolean getHome() {

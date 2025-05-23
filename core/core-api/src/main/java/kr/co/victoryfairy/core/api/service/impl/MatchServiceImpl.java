@@ -1,8 +1,13 @@
 package kr.co.victoryfairy.core.api.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.dodn.springboot.core.enums.MatchEnum;
 import kr.co.victoryfairy.core.api.domain.MatchDomain;
+import kr.co.victoryfairy.core.api.model.KakaoResponseWrapper;
 import kr.co.victoryfairy.core.api.service.MatchService;
+import kr.co.victoryfairy.storage.db.core.entity.GameMatchEntity;
+import kr.co.victoryfairy.storage.db.core.entity.HitterRecordEntity;
+import kr.co.victoryfairy.storage.db.core.entity.PitcherRecordEntity;
 import kr.co.victoryfairy.storage.db.core.entity.StadiumEntity;
 import kr.co.victoryfairy.storage.db.core.repository.*;
 import kr.co.victoryfairy.support.constant.MessageEnum;
@@ -15,6 +20,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +32,9 @@ public class MatchServiceImpl implements MatchService {
     private final StadiumRepository stadiumRepository;
     private final GameMatchRepository gameMatchRepository;
     private final GameMatchCustomRepository gameMatchCustomRepository;
-    private final GameRecordRepository gameRecordRepository;
+    private final PitcherRecordRepository pitcherRecordRepository;
+    private final HitterRecordRepository hitterRecordRepository;
+
     private final RedisHandler redisHandler;
 
     @Override
@@ -221,5 +229,218 @@ public class MatchServiceImpl implements MatchService {
                 awayTeamDto,
                 homeTeamDto
         );
+    }
+
+    @Override
+    public MatchDomain.RecordResponse findRecordById(String id) {
+        var matchEntity = gameMatchRepository.findById(id)
+                .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        var awayTeamEntity = teamRepository.findById(matchEntity.getAwayTeamEntity().getId())
+                .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        var homeTeamEntity = teamRepository.findById(matchEntity.getHomeTeamEntity().getId())
+                .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        var awayPitcherRedis = redisHandler.getHashMapList("away_pitcher");
+        var homePitcherRedis = redisHandler.getHashMapList("home_pitcher");
+
+        var awayBatterRedis = redisHandler.getHashMapList("away_hitter");
+        var homeBatterRedis = redisHandler.getHashMapList("home_hitter");
+
+        var awayPitcherData = awayPitcherRedis.get(id);
+        var awayBatterData = awayBatterRedis.get(id);
+
+        var homePitcherData = homePitcherRedis.get(id);
+        var homeBatterData = homeBatterRedis.get(id);
+
+        List<MatchDomain.PitcherRecordDto> awayPitchers = new ArrayList<>();
+        List<MatchDomain.BatterRecordDto> awayBatters = new ArrayList<>();
+
+        List<MatchDomain.PitcherRecordDto> homePitchers = new ArrayList<>();
+        List<MatchDomain.BatterRecordDto> homeBatters = new ArrayList<>();
+
+        List<PitcherRecordEntity> pitcherEntities = Collections.emptyList();
+        List<HitterRecordEntity> hitterEntities = Collections.emptyList();
+
+
+        // redis 에 저장된 데이터가 없으면 DB 조회
+        if (((awayPitcherRedis.isEmpty() || awayPitcherData == null) && (awayBatterRedis.isEmpty() || awayBatterData == null)) ||
+            ((homePitcherRedis.isEmpty() || homePitcherData == null) && (homeBatterRedis.isEmpty() || homeBatterData == null))) {
+
+            pitcherEntities = pitcherRecordRepository.findByGameMatchEntityId(id);
+            hitterEntities = hitterRecordRepository.findByGameMatchEntityId(id);
+
+            var awayPitcherEntities = pitcherEntities.stream()
+                    .filter(entity -> !entity.getHome())
+                    .toList();
+
+            if (!awayPitcherEntities.isEmpty()) {
+                awayPitchers = awayPitcherEntities.stream()
+                        .map(entity -> new MatchDomain.PitcherRecordDto(
+                                entity.getName(),
+                                entity.getPosition(),
+                                entity.getInning(),
+                                entity.getPitching(),
+                                entity.getBallFour(),
+                                entity.getStrikeOut(),
+                                entity.getHit(),
+                                entity.getHomeRun(),
+                                entity.getScore()
+                        ))
+                        .toList();
+            }
+
+            var awayBatterEntities = hitterEntities.stream()
+                    .filter(entity -> !entity.getHome())
+                    .toList();
+
+            if (!awayBatterEntities.isEmpty()) {
+                awayBatters = awayBatterEntities.stream()
+                        .map(entity -> new MatchDomain.BatterRecordDto(
+                                entity.getName(),
+                                entity.getPosition(),
+                                entity.getTurn(),
+                                entity.getHitCount(),
+                                entity.getBallFour(),
+                                entity.getStrikeOut(),
+                                entity.getScore(),
+                                entity.getHit(),
+                                entity.getHomeRun(),
+                                entity.getHitScore()
+                        ))
+                        .toList();
+            }
+
+            var homePitcherEntities = pitcherEntities.stream()
+                    .filter(entity -> entity.getHome())
+                    .toList();
+
+            if (!homePitcherEntities.isEmpty()) {
+                homePitchers = homePitcherEntities.stream()
+                        .map(entity -> new MatchDomain.PitcherRecordDto(
+                                entity.getName(),
+                                entity.getPosition(),
+                                entity.getInning(),
+                                entity.getPitching(),
+                                entity.getBallFour(),
+                                entity.getStrikeOut(),
+                                entity.getHit(),
+                                entity.getHomeRun(),
+                                entity.getScore()
+                        ))
+                        .toList();
+            }
+
+            var homeBatterEntities = hitterEntities.stream()
+                    .filter(entity -> entity.getHome())
+                    .toList();
+
+            if (!homeBatterEntities.isEmpty()) {
+                homeBatters = homeBatterEntities.stream()
+                        .map(entity -> new MatchDomain.BatterRecordDto(
+                                entity.getName(),
+                                entity.getPosition(),
+                                entity.getTurn(),
+                                entity.getHitCount(),
+                                entity.getBallFour(),
+                                entity.getStrikeOut(),
+                                entity.getScore(),
+                                entity.getHit(),
+                                entity.getHomeRun(),
+                                entity.getHitScore()
+                        ))
+                        .toList();
+            }
+        } else {
+            // redis 데이터 사용
+            ObjectMapper objectMapper = new ObjectMapper();
+            var awayPitcherObj = awayPitcherData.stream()
+                    .map(data -> objectMapper.convertValue(data, MatchDomain.PitcherRecordData.class))
+                    .toList();
+
+            var awayBatterObj = awayBatterData.stream()
+                    .map(data -> objectMapper.convertValue(data, MatchDomain.BatterRecordData.class))
+                    .toList();
+
+            var homePitcherObj = homePitcherData.stream()
+                    .map(data -> objectMapper.convertValue(data, MatchDomain.PitcherRecordData.class))
+                    .toList();
+
+            var homeBatterObj = homeBatterData.stream()
+                    .map(data -> objectMapper.convertValue(data, MatchDomain.BatterRecordData.class))
+                    .toList();
+
+            if (!awayPitcherObj.isEmpty()) {
+                awayPitcherObj.stream()
+                        .map(data -> new MatchDomain.PitcherRecordDto(
+                                data.name(),
+                                data.position(),
+                                data.inning(),
+                                data.pitching(),
+                                data.ballFour(),
+                                data.strikeOut(),
+                                data.hit(),
+                                data.homeRun(),
+                                data.score()
+                        ))
+                        .toList();
+            }
+
+            if (!awayBatterObj.isEmpty()) {
+                awayBatters = awayBatterObj.stream()
+                        .map(data -> new MatchDomain.BatterRecordDto(
+                                data.name(),
+                                data.position(),
+                                data.turn(),
+                                data.hitCount(),
+                                data.ballFour(),
+                                data.strikeOut(),
+                                data.score(),
+                                data.hit(),
+                                data.homeRun(),
+                                data.hitScore()
+                        ))
+                        .toList();
+            }
+
+            if (!homePitcherObj.isEmpty()) {
+                homePitcherObj.stream()
+                        .map(data -> new MatchDomain.PitcherRecordDto(
+                                data.name(),
+                                data.position(),
+                                data.inning(),
+                                data.pitching(),
+                                data.ballFour(),
+                                data.strikeOut(),
+                                data.hit(),
+                                data.homeRun(),
+                                data.score()
+                        ))
+                        .toList();
+            }
+
+            if (!homeBatterObj.isEmpty()) {
+                homeBatters = awayBatterObj.stream()
+                        .map(data -> new MatchDomain.BatterRecordDto(
+                                data.name(),
+                                data.position(),
+                                data.turn(),
+                                data.hitCount(),
+                                data.ballFour(),
+                                data.strikeOut(),
+                                data.score(),
+                                data.hit(),
+                                data.homeRun(),
+                                data.hitScore()
+                        ))
+                        .toList();
+            }
+        }
+
+        var awayTeamDto = new MatchDomain.TeamRecordDto(awayTeamEntity.getName(), awayPitchers, awayBatters);
+        var homeTeamDto = new MatchDomain.TeamRecordDto(homeTeamEntity.getName(), homePitchers, homeBatters);
+
+        return new MatchDomain.RecordResponse(matchEntity.getMatchAt(), awayTeamDto, homeTeamDto);
     }
 }

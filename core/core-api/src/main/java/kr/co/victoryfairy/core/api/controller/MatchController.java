@@ -32,4 +32,11 @@ public class MatchController {
         var response = matchService.findById(id);
         return CustomResponse.ok(response);
     }
+
+    @Operation(summary = "경기 기록")
+    @GetMapping("/record/{id}")
+    public CustomResponse<MatchDomain.RecordResponse> findRecordById(@PathVariable String id) {
+        var response = matchService.findRecordById(id);
+        return CustomResponse.ok(response);
+    }
 }
