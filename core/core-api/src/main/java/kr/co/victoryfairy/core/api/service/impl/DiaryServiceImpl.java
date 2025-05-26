@@ -4,8 +4,10 @@ import io.dodn.springboot.core.enums.EventType;
 import io.dodn.springboot.core.enums.MatchEnum;
 import io.dodn.springboot.core.enums.RefType;
 import kr.co.victoryfairy.core.api.domain.DiaryDomain;
+import kr.co.victoryfairy.core.api.domain.MatchDomain;
 import kr.co.victoryfairy.core.api.service.DiaryService;
 import kr.co.victoryfairy.storage.db.core.entity.*;
+import kr.co.victoryfairy.storage.db.core.model.DiaryModel;
 import kr.co.victoryfairy.storage.db.core.repository.*;
 import kr.co.victoryfairy.support.constant.MessageEnum;
 import kr.co.victoryfairy.support.exception.CustomException;
@@ -15,15 +17,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
 public class DiaryServiceImpl implements DiaryService {
 
     private final DiaryRepository diaryRepository;
+    private final DiaryCustomRepository diaryCustomRepository;
     private final DiaryFoodRepository diaryFoodRepository;
     private final SeatRepository seatRepository;
     private final SeatUseHistoryRepository seatUseHistoryRepository;
@@ -38,7 +44,7 @@ public class DiaryServiceImpl implements DiaryService {
     private final RedisHandler redisHandler;
 
     @Transactional
-    public void writeDiary(DiaryDomain.DiaryDto diaryDto){
+    public void writeDiary(DiaryDomain.WriteRequest diaryDto){
         // 로그인한 회원 조회
         var id = RequestUtils.getId();
         MemberEntity member = memberRepository.findById(Objects.requireNonNull(id))
@@ -147,6 +153,122 @@ public class DiaryServiceImpl implements DiaryService {
             var writeEventDto = new DiaryDomain.WriteEventDto(diaryDto.gameMatchId(), id, diaryEntity.getId(), EventType.DIARY);
             redisHandler.pushEvent("write_diary", writeEventDto);
         }
+    }
+
+    @Override
+    public List<DiaryDomain.ListResponse> findList(YearMonth date) {
+        var id = RequestUtils.getId();
+        if (id == null) {
+            throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
+        }
+
+        var startDate = date.atDay(1);
+        var endDate = date.atEndOfMonth();
+
+        var request = new DiaryModel.ListRequest(id, startDate, endDate);
+
+        var diaryList = diaryCustomRepository.findList(request);
+
+        if (diaryList.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        var diaryIds = diaryList.stream()
+                .map(DiaryModel.DiaryDto :: getId).toList();
+
+        var fileMap = fileRefRepository.findByRefTypeAndRefIdInAndIsUseTrue(RefType.DIARY, diaryIds).stream()
+                .collect(Collectors.toMap(
+                        entity -> entity.getRefId(),
+                        entity -> entity,
+                        (existing, replacement) -> existing
+                ));
+
+        var diaryMap = diaryList.stream()
+                .collect(Collectors.toMap(
+                        dto -> dto.getMatchAt().toLocalDate(),
+                        dto -> dto,
+                        (existing, replacement) -> existing
+                ));
+
+        var monthOfDays = IntStream.rangeClosed(1, date.lengthOfMonth())
+                .mapToObj(day -> date.atDay(day))
+                .toList();
+
+        return monthOfDays.stream()
+                .map(day -> {
+                    var dto = diaryMap.get(day);
+
+                    if (dto == null) {
+                        return new DiaryDomain.ListResponse(null, day, null, null);
+                    }
+
+                    var fileRefEntity = fileMap.get(dto.getId());
+                    DiaryDomain.ImageDto imageDto = null;
+
+                    if (fileRefEntity != null) {
+                        var fileEntity = fileRefEntity.getFileEntity();
+                        imageDto = new DiaryDomain.ImageDto(fileEntity.getId(), fileEntity.getPath(), fileEntity.getSaveName(), fileEntity.getExt());
+                    }
+
+                    return new DiaryDomain.ListResponse(dto.getId(), day, imageDto, dto.getResultType());
+                })
+                .toList();
+    }
+
+    @Override
+    public List<DiaryDomain.DailyListResponse> findDailyList(LocalDate date) {
+        var id = RequestUtils.getId();
+        if (id == null) {
+            throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
+        }
+
+        var diaryEntities = diaryCustomRepository.findDailyList(new DiaryModel.DailyListRequest(id, date));
+
+        if (diaryEntities.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        var diaryIds = diaryEntities.stream()
+                .map(DiaryModel.DiaryDto :: getId).toList();
+
+        var fileMap = fileRefRepository.findByRefTypeAndRefIdInAndIsUseTrue(RefType.DIARY, diaryIds).stream()
+                .collect(Collectors.toMap(
+                        entity -> entity.getRefId(),
+                        entity -> entity,
+                        (existing, replacement) -> existing
+                ));
+
+        return diaryEntities.stream()
+                    .map(entity -> {
+                        var fileRefEntity = fileMap.get(entity.getId());
+                        DiaryDomain.ImageDto imageDto = null;
+
+                        if (fileRefEntity != null) {
+                            var fileEntity = fileRefEntity.getFileEntity();
+                            imageDto = new DiaryDomain.ImageDto(fileEntity.getId(), fileEntity.getPath(), fileEntity.getSaveName(), fileEntity.getExt());
+                        }
+
+                        var awayScore = entity.getAwayScore();
+                        var homeScore = entity.getHomeScore();
+
+                        MatchEnum.ResultType awayResult = awayScore == null ? null :
+                                (awayScore == homeScore ? MatchEnum.ResultType.DRAW :
+                                        (awayScore > homeScore) ? MatchEnum.ResultType.WIN : MatchEnum.ResultType.LOSS);
+                        MatchEnum.ResultType homeResult = homeScore == null ? null :
+                                (homeScore == awayScore ? MatchEnum.ResultType.DRAW :
+                                        (homeScore > awayScore) ? MatchEnum.ResultType.WIN : MatchEnum.ResultType.LOSS);
+
+                        var awayTeamDto = new MatchDomain.TeamDto(entity.getAwayTeamId(), entity.getAwayTeamName(), awayScore, awayResult);
+
+                        var homeTeamDto = new MatchDomain.TeamDto(entity.getHomeTeamId(), entity.getHomeTeamName(), homeScore, homeResult);
+
+                        return new DiaryDomain.DailyListResponse(entity.getId(), entity.getShortName(),
+                                                                entity.getMatchAt().toLocalDate(), entity.getMatchAt().format(DateTimeFormatter.ofPattern("HH:mm")),
+                                                                entity.getTeamId(), awayTeamDto, homeTeamDto, entity.getContent(),
+                                                                imageDto, entity.getCreatedAt()
+                        );
+                    })
+                    .toList();
     }
 
 }

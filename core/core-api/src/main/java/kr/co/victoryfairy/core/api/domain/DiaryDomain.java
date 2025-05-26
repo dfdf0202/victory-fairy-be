@@ -2,14 +2,17 @@ package kr.co.victoryfairy.core.api.domain;
 
 import io.dodn.springboot.core.enums.DiaryEnum;
 import io.dodn.springboot.core.enums.EventType;
+import io.dodn.springboot.core.enums.MatchEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface DiaryDomain {
 
-    @Schema(name = "Diary.DiaryDto")
-    record DiaryDto(
+    @Schema(name = "Diary.WriteRequest")
+    record WriteRequest(
             @Schema(description = "응원팀 id", requiredMode = Schema.RequiredMode.REQUIRED)
             Long teamId,
 
@@ -68,4 +71,33 @@ public interface DiaryDomain {
             Long diaryId,
             EventType type
     ) {}
+
+    record ListResponse(
+            Long id,
+            LocalDate date,
+            ImageDto image,
+            MatchEnum.ResultType result
+    ) {}
+
+    record DailyListResponse(
+            Long id,
+            String stadium,
+            LocalDate date,
+            String time,
+            @Schema(description = "응원 팀 id")
+            Long teamId,
+            MatchDomain.TeamDto awayTeam,
+            MatchDomain.TeamDto homeTeam,
+            String content,
+            ImageDto image,
+            LocalDateTime createdAt
+    ) {}
+
+    record ImageDto(
+            Long id,
+            String path,
+            String saveName,
+            String ext
+    ) {}
+
 }
