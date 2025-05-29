@@ -127,7 +127,9 @@ public interface DiaryDomain {
             String content,
 
             @Schema(description = "함께한 사람 리스트")
-            List<PartnerDto> partnerList       // 함께한 사람 리스트
+            List<PartnerDto> partnerList,       // 함께한 사람 리스트
+
+            LocalDateTime createdAt
     ) {}
 
 }

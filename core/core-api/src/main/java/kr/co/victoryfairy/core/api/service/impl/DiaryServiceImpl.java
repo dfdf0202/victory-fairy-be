@@ -340,7 +340,8 @@ public class DiaryServiceImpl implements DiaryService {
                 foodList,
                 seatUseHistoryDto,
                 diaryEntity.getContent(),
-                partnerList
+                partnerList,
+                diaryEntity.getCreatedAt()
         );
     }
 
