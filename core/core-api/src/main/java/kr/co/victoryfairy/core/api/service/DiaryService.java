@@ -14,4 +14,6 @@ public interface DiaryService {
     List<DiaryDomain.ListResponse> findList(YearMonth date);
 
     List<DiaryDomain.DailyListResponse> findDailyList(LocalDate date);
+
+    DiaryDomain.DiaryDetailResponse findById(Long id);
 }

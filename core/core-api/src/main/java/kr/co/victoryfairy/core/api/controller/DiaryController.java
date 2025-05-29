@@ -48,4 +48,12 @@ public class DiaryController {
         var response = diaryService.findDailyList(date);
         return CustomResponse.ok(response);
     }
+
+    @SecurityRequirement(name = "accessToken")
+    @Operation(summary = "일기 상세")
+    @GetMapping("/{id}")
+    public CustomResponse<DiaryDomain.DiaryDetailResponse> findById(@PathVariable Long id) {
+        var response = diaryService.findById(id);
+        return CustomResponse.ok(response);
+    }
 }

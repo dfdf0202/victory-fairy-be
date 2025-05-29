@@ -13,4 +13,7 @@ public interface FileRefRepository extends JpaRepository<FileRefEntity, Long> {
 
     @EntityGraph(attributePaths = {"fileEntity"})
     List<FileRefEntity> findByRefTypeAndRefIdInAndIsUseTrue(RefType refType, List<Long> refIds);
+
+    @EntityGraph(attributePaths = {"fileEntity"})
+    List<FileRefEntity> findByRefTypeAndRefIdAndIsUseTrue(RefType refType, Long refId);
 }

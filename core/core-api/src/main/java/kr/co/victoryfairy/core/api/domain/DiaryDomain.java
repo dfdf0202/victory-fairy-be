@@ -100,4 +100,34 @@ public interface DiaryDomain {
             String ext
     ) {}
 
+    record DiaryDetailResponse(
+            @Schema(description = "응원팀 id", requiredMode = Schema.RequiredMode.REQUIRED)
+            Long teamId,
+
+            @Schema(description = "관람 방식", implementation = DiaryEnum.ViewType.class, requiredMode = Schema.RequiredMode.REQUIRED)
+            DiaryEnum.ViewType viewType,
+
+            @Schema(description = "경기 식별자", example = "20240309HTNC0" , requiredMode = Schema.RequiredMode.REQUIRED)
+            String gameMatchId,
+
+            List<ImageDto> file,
+
+            @Schema(description = "날씨", implementation = DiaryEnum.WeatherType.class)
+            DiaryEnum.WeatherType weather,                     // 날씨
+
+            @Schema(description = "기분", implementation = DiaryEnum.MoodType.class)
+            DiaryEnum.MoodType mood,
+
+            @Schema(description = "음식 리스트", example = "[\"맥주\", \"치킨\"]")
+            List<String> foodNameList,          // 음식 리스트
+
+            @Schema(description = "좌석 정보")
+            SeatUseHistoryDto seat,             // 좌석
+
+            String content,
+
+            @Schema(description = "함께한 사람 리스트")
+            List<PartnerDto> partnerList       // 함께한 사람 리스트
+    ) {}
+
 }

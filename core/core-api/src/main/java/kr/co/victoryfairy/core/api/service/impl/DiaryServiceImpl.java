@@ -271,4 +271,77 @@ public class DiaryServiceImpl implements DiaryService {
                     .toList();
     }
 
+    @Override
+    public DiaryDomain.DiaryDetailResponse findById(Long diaryId) {
+        var id = RequestUtils.getId();
+        if (id == null) {
+            throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
+        }
+
+        var diaryEntity = diaryRepository.findByMemberIdAndId(id, diaryId)
+                .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        var foodList = diaryFoodRepository.findByDiaryEntityId(diaryId).stream()
+                .map(entity -> {
+                    if (entity == null) {
+                        return null;
+                    }
+
+                    return entity.getFoodName();
+                })
+                .toList();
+
+        var fileDto = fileRefRepository.findByRefTypeAndRefIdAndIsUseTrue(RefType.DIARY, diaryId).stream()
+                .map(entity -> {
+                    if (entity == null) {
+                        return null;
+                    }
+                    var fileEntity = entity.getFileEntity();
+                    return new DiaryDomain.ImageDto(entity.getId(), fileEntity.getPath(), fileEntity.getSaveName(), fileEntity.getExt());
+                })
+                .toList();
+
+        DiaryDomain.SeatUseHistoryDto seatUseHistoryDto = null;
+
+        var seatUseHistoryEntity = seatUseHistoryRepository.findByDiaryEntityId(diaryId);
+        if (seatUseHistoryEntity != null) {
+            var seatReviewList = seatReviewRepository.findBySeatUseHistoryEntity(seatUseHistoryEntity).stream()
+                    .map(entity -> {
+                        if (entity == null) {
+                            return null;
+                        }
+                        return entity.getSeatReview();
+                    })
+                    .toList();
+
+            seatUseHistoryDto = new DiaryDomain.SeatUseHistoryDto(
+                    seatUseHistoryEntity.getId(),
+                    seatUseHistoryEntity.getSeatName(),
+                    seatReviewList
+            );
+        }
+
+        var partnerList = partnerRepository.findByDiaryEntityId(diaryId).stream()
+                .map(entity -> {
+                    if (entity == null) {
+                        return null;
+                    }
+                    return new DiaryDomain.PartnerDto(entity.getName(), entity.getTeamEntity().getId());
+                })
+                .toList();
+
+        return new DiaryDomain.DiaryDetailResponse(
+                diaryEntity.getTeamEntity().getId(),
+                diaryEntity.getViewType(),
+                diaryEntity.getGameMatchEntity().getId(),
+                fileDto,
+                diaryEntity.getWeatherType(),
+                diaryEntity.getMoodType(),
+                foodList,
+                seatUseHistoryDto,
+                diaryEntity.getContent(),
+                partnerList
+        );
+    }
+
 }
