@@ -5,7 +5,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import kr.co.victoryfairy.core.api.domain.MatchDomain;
 import kr.co.victoryfairy.core.api.domain.MemberDomain;
+import kr.co.victoryfairy.core.api.service.MatchService;
 import kr.co.victoryfairy.core.api.service.MemberService;
 import kr.co.victoryfairy.support.constant.MessageEnum;
 import kr.co.victoryfairy.support.model.CustomResponse;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class MemberController {
 
     private final MemberService memberService;
+    private final MatchService matchService;
 
     @Operation(summary = "sns 별 인증 주소 불러오기")
     @GetMapping("/auth-path")
@@ -42,7 +45,7 @@ public class MemberController {
 
     @SecurityRequirement(name = "accessToken")
     @Operation(summary = "관심 팀 등록")
-    @PatchMapping("/team")
+    @PutMapping("/team")
     public CustomResponse<MessageEnum> updateTeam(@RequestBody  @Validated MemberDomain.MemberTeamUpdateRequest request) {
         memberService.updateTeam(request);
         return CustomResponse.ok(MessageEnum.Common.UPDATE);
@@ -59,7 +62,7 @@ public class MemberController {
     @SecurityRequirement(name = "accessToken")
     @Operation(summary = "닉네임 중복 체크")
     @PostMapping("/check-nick-duplicate")
-    public CustomResponse<MessageEnum> checkNickNmDuplicate(@RequestBody String nickNm) {
+    public CustomResponse<MemberDomain.MemberCheckNickDuplicateResponse> checkNickNmDuplicate(@RequestBody String nickNm) {
         return CustomResponse.ok(memberService.checkNickNmDuplicate(nickNm));
     }
 
@@ -70,4 +73,13 @@ public class MemberController {
         memberService.updateMemberInfo(request);
         return CustomResponse.ok(MessageEnum.Common.REQUEST);
     }
+
+    @SecurityRequirement(name = "accessToken")
+    @Operation(summary = "관심 팀 경기")
+    @GetMapping("/match-today")
+    public CustomResponse<MatchDomain.MatchInfoResponse> findInterestMatch() {
+        var response = matchService.findByTeam();
+        return CustomResponse.ok(response);
+    }
+
 }

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 
 import static kr.co.victoryfairy.storage.db.core.entity.QGameMatchEntity.gameMatchEntity;
 import static kr.co.victoryfairy.storage.db.core.entity.QStadiumEntity.stadiumEntity;
@@ -53,6 +54,32 @@ public class GameMatchCustomRepositoryImpl extends QuerydslRepositorySupport imp
                 .fetch();
     }
 
+    @Override
+    public Optional<GameMatchEntity> findByTeamId(Long teamId, LocalDate matchAt) {
+        return Optional.ofNullable(jpaQueryFactory
+                .select(Projections.fields(GameMatchEntity.class
+                        , gameMatchEntity.id
+                        , gameMatchEntity.type
+                        , gameMatchEntity.series
+                        , gameMatchEntity.season
+                        , gameMatchEntity.matchAt
+                        , gameMatchEntity.awayTeamEntity
+                        , gameMatchEntity.awayNm
+                        , gameMatchEntity.awayScore
+                        , gameMatchEntity.homeTeamEntity
+                        , gameMatchEntity.homeNm
+                        , gameMatchEntity.homeScore
+                        , stadiumEntity
+                        , gameMatchEntity.status
+                        , gameMatchEntity.reason
+                        , gameMatchEntity.isMatchInfoCraw
+                ))
+                .from(gameMatchEntity)
+                .leftJoin(stadiumEntity).on(gameMatchEntity.stadiumEntity.id.eq(stadiumEntity.id))
+                .where(this.eqTeamId(teamId).and(this.eqMatchAt(matchAt)))
+                .fetchOne());
+    }
+
     private BooleanExpression eqMatchAt(LocalDate matchAt) {
         if (matchAt == null) {
             return null;
@@ -64,5 +91,9 @@ public class GameMatchCustomRepositoryImpl extends QuerydslRepositorySupport imp
                 "DATE_FORMAT({0}, '%Y-%m-%d')", gameMatchEntity.matchAt);
 
         return dbDate.eq(matchAtStr);
+    }
+
+    private BooleanExpression eqTeamId(Long teamId) {
+        return teamId == null ? null : gameMatchEntity.awayTeamEntity.id.eq(teamId).or(gameMatchEntity.homeTeamEntity.id.eq(teamId));
     }
 }

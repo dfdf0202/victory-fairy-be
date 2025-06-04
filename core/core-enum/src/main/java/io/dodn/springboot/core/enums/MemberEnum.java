@@ -20,4 +20,9 @@ public interface MemberEnum {
         GOOGLE,
         APPLE
     }
+
+    enum NickStatus {
+        AVAILABLE,
+        DUPLICATE
+    }
 }

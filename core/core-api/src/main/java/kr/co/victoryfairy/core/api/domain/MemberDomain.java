@@ -95,6 +95,11 @@ public interface MemberDomain {
             String nickNm
     ) {}
 
+    record MemberCheckNickDuplicateResponse(
+            MemberEnum.NickStatus status,
+            String message
+    ) {}
+
     @Schema(name = "Member.MemberLoginRequest")
     record MemberInfoUpdateRequest(
             @Schema(description = "업로드된 파일 id")

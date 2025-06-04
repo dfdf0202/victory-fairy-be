@@ -37,7 +37,7 @@ public interface MemberService {
      * @param nickNm
      * @return
      */
-    MessageEnum.CheckNick checkNickNmDuplicate(String nickNm);
+    MemberDomain.MemberCheckNickDuplicateResponse checkNickNmDuplicate(String nickNm);
 
     /**
      * 멤버 정보 수정

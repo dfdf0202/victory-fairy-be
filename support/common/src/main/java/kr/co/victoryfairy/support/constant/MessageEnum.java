@@ -56,7 +56,8 @@ public interface  MessageEnum {
         FAIL_DUPLICATE("해당 데이터가 이미 등록 되어있습니다.","Data is duplicated."),
         FAIL_NOT_NULL("필수 파라미터가 존재하지 않습니다.","Required parameters not entered."),
         AVAILABLE("사용 가능한 데이터 입니다.","This is the data available."),
-        WRONG_APPROACH("잘못된 접근 입니다.","This is wrong approach.")
+        WRONG_APPROACH("잘못된 접근 입니다.","This is wrong approach."),
+        NO_INTEREST_TEAM("등록된 응원 팀이 없습니다.", "No interest team found."),
         ;
 
         private String descKr;

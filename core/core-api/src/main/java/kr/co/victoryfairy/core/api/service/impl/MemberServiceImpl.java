@@ -141,7 +141,7 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
-    public MessageEnum.CheckNick checkNickNmDuplicate(String nickNm) {
+    public MemberDomain.MemberCheckNickDuplicateResponse checkNickNmDuplicate(String nickNm) {
         var id = RequestUtils.getId();
         if (id == null) throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
         // Redis 에 저장된 nickNm 이 있는지 체크
@@ -151,7 +151,7 @@ public class MemberServiceImpl implements MemberService {
             var now = LocalDateTime.now();
             // 선점된지 72시간 이내의 nickNm 인지 체크
             if (Duration.between(existingNick.getCreatedAt(), now).toHours() < 72) {
-                return MessageEnum.CheckNick.DUPLICATE;
+                return new MemberDomain.MemberCheckNickDuplicateResponse(MemberEnum.NickStatus.DUPLICATE, "중복된 닉네임입니다.");
             }
 
             // 72시간이 지난 경우 만료로 보고 삭제
@@ -161,7 +161,7 @@ public class MemberServiceImpl implements MemberService {
 
         // 이미 DB 에 저장된 닉네임인지 체크
         if (memberInfoRepository.findByNickNm(nickNm).isPresent()) {
-            return MessageEnum.CheckNick.DUPLICATE;
+            return new MemberDomain.MemberCheckNickDuplicateResponse(MemberEnum.NickStatus.DUPLICATE, "중복된 닉네임입니다.");
         }
 
         // 이미 선점한 닉네임이 있을 경우 삭제 처리
@@ -184,7 +184,7 @@ public class MemberServiceImpl implements MemberService {
         redisHandler.setHashValue("checkNick", nickNm, info);
         redisHandler.setHashValue("memberNickNm", String.valueOf(id), myNickInfo);
 
-        return MessageEnum.CheckNick.AVAILABLE;
+        return new MemberDomain.MemberCheckNickDuplicateResponse(MemberEnum.NickStatus.AVAILABLE, "사용 가능한 닉네임입니다.");
     }
 
     @Override
