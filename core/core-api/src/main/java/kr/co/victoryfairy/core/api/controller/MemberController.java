@@ -82,4 +82,12 @@ public class MemberController {
         return CustomResponse.ok(response);
     }
 
+    @SecurityRequirement(name = "accessToken")
+    @Operation(summary = "직관 승률")
+    @GetMapping("/win-rate")
+    public CustomResponse<MemberDomain.MemberHomeWinRateResponse> findHomeWinRate() {
+        var response = memberService.findHomeWinRate();
+        return CustomResponse.ok(response);
+    }
+
 }

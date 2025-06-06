@@ -45,4 +45,5 @@ public interface MemberService {
      */
     void updateMemberInfo(MemberDomain.MemberInfoUpdateRequest request);
 
+    MemberDomain.MemberHomeWinRateResponse findHomeWinRate();
 }

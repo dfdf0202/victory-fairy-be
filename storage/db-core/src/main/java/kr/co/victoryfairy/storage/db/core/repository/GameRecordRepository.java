@@ -1,8 +1,11 @@
 package kr.co.victoryfairy.storage.db.core.repository;
 
 import kr.co.victoryfairy.storage.db.core.entity.GameRecordEntity;
+import kr.co.victoryfairy.storage.db.core.entity.MemberEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface GameRecordRepository extends JpaRepository<GameRecordEntity, Long> {
+import java.util.List;
 
+public interface GameRecordRepository extends JpaRepository<GameRecordEntity, Long> {
+    List<GameRecordEntity> findByMemberAndSeason(MemberEntity member, String season);
 }

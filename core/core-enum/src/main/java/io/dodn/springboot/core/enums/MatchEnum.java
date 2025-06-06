@@ -74,7 +74,8 @@ public interface MatchEnum {
     enum ResultType {
         WIN("승"),
         LOSS("패"),
-        DRAW("무")
+        DRAW("무"),
+        CANCEL("취소")
         ;
 
         private String desc;

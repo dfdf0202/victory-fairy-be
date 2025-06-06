@@ -108,4 +108,12 @@ public interface MemberDomain {
             @Schema(description = "닉네임", requiredMode = Schema.RequiredMode.REQUIRED)
             String nickNm
     ) {}
+
+    record MemberHomeWinRateResponse(
+        Short winAvg,
+        Short win,
+        Short lose,
+        Short draw,
+        Short cancel
+    ) {}
 }

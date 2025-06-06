@@ -1,5 +1,7 @@
 package kr.co.victoryfairy.core.api.service.impl;
 
+import io.dodn.springboot.core.enums.DiaryEnum;
+import io.dodn.springboot.core.enums.MatchEnum;
 import io.dodn.springboot.core.enums.MemberEnum;
 import io.dodn.springboot.core.enums.RefType;
 import kr.co.victoryfairy.core.api.domain.MemberDomain;
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -33,6 +36,8 @@ public class MemberServiceImpl implements MemberService {
     private final TeamRepository teamRepository;
     private final FileRepository fileRepository;
     private final FileRefRepository fileRefRepository;
+    private final GameRecordRepository gameRecordRepository;
+
     private final JwtService jwtService;
     private final RedisHandler redisHandler;
 
@@ -234,5 +239,60 @@ public class MemberServiceImpl implements MemberService {
         // Redis 에 저장된 데이터 삭제 처리
         redisHandler.deleteHashValue("checkNick", request.nickNm());
         redisHandler.deleteHashValue("memberNickNm", String.valueOf(id));
+    }
+
+    @Override
+    public MemberDomain.MemberHomeWinRateResponse findHomeWinRate() {
+        var id = RequestUtils.getId();
+        if (id == null) throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
+
+        var memberEntity = memberRepository.findById(id)
+                .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        var year = String.valueOf(LocalDate.now().getYear());
+
+        var recordList = gameRecordRepository.findByMemberAndSeason(memberEntity, year);
+
+        var homeRecord = recordList.stream()
+                .filter(record -> record.getViewType() == DiaryEnum.ViewType.STADIUM)
+                .toList();
+
+        if (recordList.isEmpty() || homeRecord.isEmpty()) {
+            return new MemberDomain.MemberHomeWinRateResponse((short) 0, (short) 0, (short) 0, (short) 0, (short) 0);
+        }
+
+        var winCount = (short) homeRecord.stream()
+                .filter(record -> record.getResultType() == MatchEnum.ResultType.WIN)
+                .count();
+
+        var loseCount = (short) homeRecord.stream()
+                .filter(record -> record.getResultType() == MatchEnum.ResultType.LOSS)
+                .count();
+
+        var drawCount = (short) homeRecord.stream()
+                .filter(record -> record.getResultType() == MatchEnum.ResultType.DRAW)
+                .count();
+
+        var cancelCount = (short) homeRecord.stream()
+                .filter(record -> record.getResultType() == MatchEnum.ResultType.CANCEL)
+                .count();
+
+        // 승 + 패 경기 수
+        var validGameCount = winCount + loseCount;
+
+        // 승률 계산
+        short winAvg = 0;
+        if (validGameCount > 0) {
+            double avg = (double) winCount / validGameCount * 100;
+            winAvg = (short) Math.round(avg);  // 소수점 첫째자리 반올림
+        }
+
+        return new MemberDomain.MemberHomeWinRateResponse(
+                winAvg,
+                (short) winCount,
+                (short) loseCount,
+                (short) drawCount,
+                (short) cancelCount
+        );
     }
 }
