@@ -13,12 +13,12 @@ public class ScoreJob {
         this.batchService = batchService;
     }
 
-    //@Scheduled(cron = "${batch.check.score}", zone = "Asia/Seoul")
+    @Scheduled(cron = "${batch.check.score}", zone = "Asia/Seoul")
     public void checkScore() {
         batchService.batchScore();
     }
 
-    //@Scheduled(cron = "${batch.check.info}", zone = "Asia/Seoul")
+    @Scheduled(cron = "${batch.check.info}", zone = "Asia/Seoul")
     public void checkInfo() {
         batchService.batchMatchInfo();
     }

@@ -349,6 +349,7 @@ public class BatchServiceImpl implements BatchService {
                                             .orElse(null);
 
                                     if (diaryEntity.getIsRated()) {
+                                        logger.info("DiaryId {} already rated, skip.", diaryEntity.getId());
                                         return;
                                     }
 
