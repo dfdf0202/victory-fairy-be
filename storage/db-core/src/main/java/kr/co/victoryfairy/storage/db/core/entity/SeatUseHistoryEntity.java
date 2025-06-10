@@ -26,6 +26,6 @@ public class SeatUseHistoryEntity extends BaseEntity{
     private DiaryEntity diaryEntity;                // 일기 식별자
 
     @Column(name = "seat_name")
-    private Short seatName;          // 좌석 번호
+    private String seatName;          // 좌석 번호
 
 }

@@ -1,6 +1,7 @@
 package kr.co.victoryfairy.core.api.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.co.victoryfairy.core.api.domain.MatchDomain;
 import kr.co.victoryfairy.core.api.service.MatchService;
@@ -19,6 +20,7 @@ public class MatchController {
 
     private final MatchService matchService;
 
+    @SecurityRequirement(name = "accessToken")
     @Operation(summary = "특정 날짜 경기 불러오기")
     @GetMapping("/list")
     public CustomResponse<MatchDomain.MatchListResponse> findList(@RequestParam @DateTimeFormat(pattern = "yyyyMMdd") LocalDate date) {

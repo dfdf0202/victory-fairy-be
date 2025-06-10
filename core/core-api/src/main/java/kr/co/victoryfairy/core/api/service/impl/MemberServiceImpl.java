@@ -1,5 +1,7 @@
 package kr.co.victoryfairy.core.api.service.impl;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.dodn.springboot.core.enums.DiaryEnum;
 import io.dodn.springboot.core.enums.MatchEnum;
 import io.dodn.springboot.core.enums.MemberEnum;
@@ -171,7 +173,8 @@ public class MemberServiceImpl implements MemberService {
         }
 
         // 이미 선점한 닉네임이 있을 경우 삭제 처리
-        var myNick = redisHandler.getHashValue("memberNickNm", String.valueOf(id));
+        var myNickJson = redisHandler.getHashValue("memberNickNm", String.valueOf(id));
+        var myNick = extractKeyFromJson(myNickJson);
         if (StringUtils.hasText(myNick)) {
             redisHandler.deleteHashValue("memberNickNm", String.valueOf(id));
             redisHandler.deleteHashValue("checkNick", myNick);
@@ -297,4 +300,13 @@ public class MemberServiceImpl implements MemberService {
         );
     }
 
+    private String extractKeyFromJson(String json) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode node = mapper.readTree(json);
+            return node.get("key").asText();
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid json format", e);
+        }
+    }
 }

@@ -58,7 +58,7 @@ public interface DiaryDomain {
             Long id,           // 좌석 식별자
 
             @Schema(description = "좌석 이름")
-            Short name,     // 좌석 번호
+            String name,     // 좌석 번호
 
             @Schema(description = "좌석 리뷰", example = "[\"탁 트인 시야\", \"넓은 공간\"]")
             List<String> desc // 좌석 리뷰
