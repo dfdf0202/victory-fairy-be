@@ -9,16 +9,18 @@ import io.dodn.springboot.core.enums.MatchEnum;
 import kr.co.victoryfairy.core.batch.model.WriteEventDto;
 import kr.co.victoryfairy.core.batch.service.BatchService;
 import kr.co.victoryfairy.storage.db.core.entity.GameMatchEntity;
+import kr.co.victoryfairy.storage.db.core.entity.GameRecordEntity;
 import kr.co.victoryfairy.storage.db.core.entity.HitterRecordEntity;
 import kr.co.victoryfairy.storage.db.core.entity.PitcherRecordEntity;
-import kr.co.victoryfairy.storage.db.core.repository.GameMatchCustomRepository;
-import kr.co.victoryfairy.storage.db.core.repository.GameMatchRepository;
-import kr.co.victoryfairy.storage.db.core.repository.HitterRecordRepository;
-import kr.co.victoryfairy.storage.db.core.repository.PitcherRecordRepository;
+import kr.co.victoryfairy.storage.db.core.repository.*;
 import kr.co.victoryfairy.support.handler.RedisHandler;
+import kr.co.victoryfairy.support.handler.RedisOperator;
 import kr.co.victoryfairy.support.utils.SlackUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Range;
+import org.springframework.data.redis.connection.stream.*;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -32,25 +34,40 @@ import java.util.regex.Pattern;
 @Service
 public class BatchServiceImpl implements BatchService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    private final MemberRepository memberRepository;
+    private final DiaryRepository diaryRepository;
+    private final TeamRepository teamRepository;
     private final GameMatchRepository gameMatchRepository;
+    private final GameRecordRepository gameRecordRepository;
     private final GameMatchCustomRepository gameMatchEntityCustomRepository;
     private final HitterRecordRepository hitterRecordRepository;
     private final PitcherRecordRepository pitcherRecordRepository;
 
     private final RedisHandler redisHandler;
     private final SlackUtils slackUtils;
+    private final RedisOperator redisOperator;
 
-    public BatchServiceImpl(GameMatchRepository gameMatchRepository,
-                            GameMatchCustomRepository gameMatchEntityCustomRepository,
+    private final RedisTemplate<String, Object> redisTemplate;
+    public BatchServiceImpl(MemberRepository memberRepository, DiaryRepository diaryRepository,
+                            TeamRepository teamRepository, GameMatchRepository gameMatchRepository,
+                            GameMatchCustomRepository gameMatchEntityCustomRepository, GameRecordRepository gameRecordRepository,
                             HitterRecordRepository hitterRecordRepository,
                             PitcherRecordRepository pitcherRecordRepository,
-                            RedisHandler redisHandler, SlackUtils slackUtils) {
+                            RedisTemplate<String, Object> redisTemplate,
+                            RedisHandler redisHandler, SlackUtils slackUtils, RedisOperator redisOperator) {
+        this.memberRepository = memberRepository;
+        this.diaryRepository = diaryRepository;
+        this.teamRepository = teamRepository;
         this.gameMatchRepository = gameMatchRepository;
         this.gameMatchEntityCustomRepository = gameMatchEntityCustomRepository;
+        this.gameRecordRepository = gameRecordRepository;
         this.hitterRecordRepository = hitterRecordRepository;
         this.pitcherRecordRepository = pitcherRecordRepository;
         this.redisHandler = redisHandler;
         this.slackUtils = slackUtils;
+        this.redisOperator = redisOperator;
+        this.redisTemplate = redisTemplate;
     }
 
     @Override
@@ -287,6 +304,106 @@ public class BatchServiceImpl implements BatchService {
 
 
         logger.info("========== Match Info Craw  END ==========");
+    }
+
+    @Override
+    @Transactional
+    public void checkEvent() {
+        logger.info("========== Check Event Start ==========");
+
+        String streamKey = "write_diary";
+        String groupName = "diary_group";
+
+        // 테스트 모드 여부 (true 로 하면 테스트 consumer 사용)
+
+        String consumerName = "batch_consumer";
+
+        var pendingSummary = redisOperator.pendingSummary(streamKey, groupName);
+
+        pendingSummary.getPendingMessagesPerConsumer().forEach((consumer, count) -> {
+            logger.info("Consumer: {}, Pending Messages: {}", consumer, count);
+        });
+
+        if (pendingSummary.getTotalPendingMessages() > 0) {
+            List<PendingMessage> pendingMessages = redisOperator.getPendingDetails(streamKey, groupName, 10);
+
+            pendingMessages.stream()
+                    .filter(Objects::nonNull)
+                    .forEach(pendingMessage -> {
+                        List<MapRecord<String, Object, Object>> messages =
+                                redisOperator.read(streamKey, groupName, consumerName, pendingMessage.getIdAsString());
+
+                        messages.stream()
+                                .filter(Objects::nonNull)
+                                .forEach(recordMessage -> {
+                                    Map<Object, Object> body = recordMessage.getValue();
+                                    logger.info("TEST MODE - Reprocessing record: {}", body);
+
+                                    var memberEntity = memberRepository.findById(Long.parseLong((String) body.get("memberId")))
+                                            .orElse(null);
+
+                                    var matchEntity = gameMatchRepository.findById(String.valueOf(body.get("gameId")))
+                                            .orElse(null);
+
+                                    var diaryEntity = diaryRepository.findById(Long.parseLong((String) body.get("diaryId")))
+                                            .orElse(null);
+
+                                    if (diaryEntity.getIsRated()) {
+                                        return;
+                                    }
+
+                                    var teamEntity = teamRepository.findById(diaryEntity.getTeamEntity().getId())
+                                            .orElse(null);
+
+                                    if (memberEntity == null || matchEntity == null || diaryEntity == null || teamEntity == null) {
+                                        return;
+                                    }
+
+                                    var awayTeam = matchEntity.getAwayTeamEntity();
+                                    var homeTeam = matchEntity.getHomeTeamEntity();
+
+                                    var awayScore = matchEntity.getAwayScore();
+                                    var homeScore = matchEntity.getHomeScore();
+
+                                    var isAway = awayTeam.getId().equals(teamEntity.getId());
+
+                                    var myScore = isAway ? awayScore : homeScore;
+                                    var opponentScore = isAway ? homeScore : awayScore;
+
+                                    var isWin = myScore > opponentScore;
+
+                                    var matchResult = (myScore == opponentScore) ? MatchEnum.ResultType.DRAW
+                                            : (isWin ? MatchEnum.ResultType.WIN : MatchEnum.ResultType.LOSS);
+
+                                    var gameRecordEntity = GameRecordEntity.builder()
+                                            .member(memberEntity)
+                                            .diaryEntity(diaryEntity)
+                                            .gameMatchEntity(matchEntity)
+                                            .teamEntity(teamEntity)
+                                            .teamName(teamEntity.getName())
+                                            .opponentTeamEntity(isAway ? homeTeam : awayTeam)
+                                            .opponentTeamName(isAway ? homeTeam.getName() : awayTeam.getName())
+                                            .stadiumEntity(matchEntity.getStadiumEntity())
+                                            .viewType(diaryEntity.getViewType())
+                                            .status(matchEntity.getStatus())
+                                            .resultType(matchResult)
+                                            .season(matchEntity.getSeason())
+                                            .build();
+                                    gameRecordRepository.save(gameRecordEntity);
+
+                                    // 이벤트 적용 여부 업데이트
+                                    diaryEntity.updateRated();
+                                    diaryRepository.save(diaryEntity);
+
+                                    // 실제 처리 로직 넣기 (테스트 시에는 ack 생략 가능, 원하면 ack 넣어도 됨)
+                                    redisOperator.ack(streamKey, groupName, recordMessage.getId().getValue());
+                                    redisHandler.eventKnowEdge(streamKey, groupName, recordMessage.getId().getValue());
+                                    logger.info("Acked messageId={}", recordMessage.getId().getValue());
+                                });
+                    });
+        } else {
+            logger.info("No pending messages to process.");
+        }
     }
 
     private static List<HitterRecordEntity> scrapeHitterEntity(Page page, Boolean isHome, String year, GameMatchEntity gameMatchEntity) {

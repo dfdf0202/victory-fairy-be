@@ -174,8 +174,8 @@ public class MemberServiceImpl implements MemberService {
 
         // 이미 선점한 닉네임이 있을 경우 삭제 처리
         var myNickJson = redisHandler.getHashValue("memberNickNm", String.valueOf(id));
-        var myNick = extractKeyFromJson(myNickJson);
-        if (StringUtils.hasText(myNick)) {
+        if (StringUtils.hasText(myNickJson)) {
+            var myNick = extractKeyFromJson(myNickJson);
             redisHandler.deleteHashValue("memberNickNm", String.valueOf(id));
             redisHandler.deleteHashValue("checkNick", myNick);
         }
