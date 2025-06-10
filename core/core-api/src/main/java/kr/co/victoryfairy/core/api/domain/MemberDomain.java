@@ -109,11 +109,18 @@ public interface MemberDomain {
             String nickNm
     ) {}
 
+    @Schema(name = "Member.MemberHomeWinRateResponse")
     record MemberHomeWinRateResponse(
+        @Schema(description = "승률")
         Short winAvg,
+        @Schema(description = "승")
         Short win,
+        @Schema(description = "패")
         Short lose,
+        @Schema(description = "무")
         Short draw,
+        @Schema(description = "취소")
         Short cancel
     ) {}
+
 }

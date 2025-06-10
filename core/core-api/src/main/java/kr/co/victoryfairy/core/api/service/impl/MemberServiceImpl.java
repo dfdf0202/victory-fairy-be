@@ -5,6 +5,7 @@ import io.dodn.springboot.core.enums.MatchEnum;
 import io.dodn.springboot.core.enums.MemberEnum;
 import io.dodn.springboot.core.enums.RefType;
 import kr.co.victoryfairy.core.api.domain.MemberDomain;
+import kr.co.victoryfairy.core.api.domain.MyPageDomain;
 import kr.co.victoryfairy.core.api.model.NickNameInfo;
 import kr.co.victoryfairy.core.api.service.MemberService;
 import kr.co.victoryfairy.core.api.service.oauth.JwtService;
@@ -253,27 +254,27 @@ public class MemberServiceImpl implements MemberService {
 
         var recordList = gameRecordRepository.findByMemberAndSeason(memberEntity, year);
 
-        var homeRecord = recordList.stream()
+        var stadiumRecord = recordList.stream()
                 .filter(record -> record.getViewType() == DiaryEnum.ViewType.STADIUM)
                 .toList();
 
-        if (recordList.isEmpty() || homeRecord.isEmpty()) {
+        if (recordList.isEmpty() || stadiumRecord.isEmpty()) {
             return new MemberDomain.MemberHomeWinRateResponse((short) 0, (short) 0, (short) 0, (short) 0, (short) 0);
         }
 
-        var winCount = (short) homeRecord.stream()
+        var winCount = (short) stadiumRecord.stream()
                 .filter(record -> record.getResultType() == MatchEnum.ResultType.WIN)
                 .count();
 
-        var loseCount = (short) homeRecord.stream()
+        var loseCount = (short) stadiumRecord.stream()
                 .filter(record -> record.getResultType() == MatchEnum.ResultType.LOSS)
                 .count();
 
-        var drawCount = (short) homeRecord.stream()
+        var drawCount = (short) stadiumRecord.stream()
                 .filter(record -> record.getResultType() == MatchEnum.ResultType.DRAW)
                 .count();
 
-        var cancelCount = (short) homeRecord.stream()
+        var cancelCount = (short) stadiumRecord.stream()
                 .filter(record -> record.getResultType() == MatchEnum.ResultType.CANCEL)
                 .count();
 
@@ -295,4 +296,5 @@ public class MemberServiceImpl implements MemberService {
                 (short) cancelCount
         );
     }
+
 }

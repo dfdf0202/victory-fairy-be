@@ -2,7 +2,7 @@ package kr.co.victoryfairy.core.api.service;
 
 import io.dodn.springboot.core.enums.MemberEnum;
 import kr.co.victoryfairy.core.api.domain.MemberDomain;
-import kr.co.victoryfairy.support.constant.MessageEnum;
+import kr.co.victoryfairy.core.api.domain.MyPageDomain;
 
 public interface MemberService {
 
@@ -45,5 +45,10 @@ public interface MemberService {
      */
     void updateMemberInfo(MemberDomain.MemberInfoUpdateRequest request);
 
+    /**
+     * 집관 승률
+     * @return
+     */
     MemberDomain.MemberHomeWinRateResponse findHomeWinRate();
+
 }

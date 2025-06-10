@@ -22,8 +22,10 @@ public class AccessTokenWebFilter extends PathPatternWebFilter {
     public AccessTokenWebFilter(JwtProperties jwtProperties) {
         this.jwtProperties = jwtProperties;
         this.addIncludePathPatterns("/v2/api/member/**");
+        this.addIncludePathPatterns("/v2/api/my-page/**");
         this.addIncludePathPatterns("/v2/api/diary/**");
         this.addIncludePathPatterns("/member/**");
+        this.addIncludePathPatterns("/my-page/**");
         this.addExcludePathPatterns(
             "/",
             "/swagger-ui/**",
