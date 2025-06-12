@@ -224,9 +224,8 @@ public class MemberServiceImpl implements MemberService {
             var fileEntity = fileRepository.findById(request.fileId())
                     .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
-            var fileRefEntity = fileRefRepository.findByRefTypeAndRefIdAndIsUseTrue(RefType.PROFILE, request.fileId()).orElse(null);
-
             // 기존 등록된 프로필 사진 isUse false 처리
+            var fileRefEntity = fileRefRepository.findByRefTypeAndRefIdAndIsUseTrue(RefType.PROFILE, id).orElse(null);
             if (fileRefEntity != null) {
                 fileRefEntity.delete();
             }
