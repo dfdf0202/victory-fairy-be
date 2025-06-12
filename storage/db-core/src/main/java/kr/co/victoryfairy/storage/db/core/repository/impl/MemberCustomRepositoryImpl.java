@@ -46,8 +46,9 @@ public class MemberCustomRepositoryImpl extends QuerydslRepositorySupport implem
                 .innerJoin(memberInfoEntity).on(memberInfoEntity.memberEntity.id.eq(memberEntity.id))
                 .leftJoin(teamEntity).on(memberInfoEntity.teamEntity.id.eq(teamEntity.id))
                 .leftJoin(fileRefEntity).on(fileRefEntity.refType.eq(RefType.PROFILE).and(fileRefEntity.refId.eq(memberEntity.id)))
-                .leftJoin(fileEntity).on(fileRefEntity.fileEntity.id.eq(fileEntity.id).and(fileEntity.isUse.eq(true)))
-                .where(memberEntity.id.eq(memberId))
+                .leftJoin(fileEntity).on(fileRefEntity.fileEntity.id.eq(fileEntity.id))
+                .where(memberEntity.id.eq(memberId)
+                        .and(fileRefEntity.isUse.eq(true)))
                 .fetchOne());
     }
 }

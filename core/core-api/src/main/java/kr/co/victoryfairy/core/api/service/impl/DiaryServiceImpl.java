@@ -291,7 +291,7 @@ public class DiaryServiceImpl implements DiaryService {
                 })
                 .toList();
 
-        var fileDto = fileRefRepository.findByRefTypeAndRefIdAndIsUseTrue(RefType.DIARY, diaryId).stream()
+        var fileDto = fileRefRepository.findAllByRefTypeAndRefIdAndIsUseTrue(RefType.DIARY, diaryId).stream()
                 .map(entity -> {
                     if (entity == null) {
                         return null;
