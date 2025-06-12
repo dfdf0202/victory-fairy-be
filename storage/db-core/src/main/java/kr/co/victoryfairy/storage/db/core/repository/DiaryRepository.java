@@ -14,4 +14,5 @@ public interface DiaryRepository extends JpaRepository<DiaryEntity,Long> {
     DiaryEntity findByMemberAndGameMatchEntity(MemberEntity memberEntity, GameMatchEntity gameMatchEntity);
     List<DiaryEntity> findByGameMatchEntityAndIsRatedFalse(GameMatchEntity gameMatchEntity);
     Optional<DiaryEntity> findByMemberIdAndId(Long memberId, Long id);
+    List<DiaryEntity> findByMemberId(Long memberId);
 }

@@ -19,6 +19,10 @@ public class TeamEntity extends BaseEntity {
     private String kboNm;
 
     @Column
+    @Comment("스폰서 명")
+    private String sponsorNm;
+
+    @Column
     private String label;
 
     public TeamEntity() {

@@ -13,6 +13,7 @@ public interface MemberModel {
 
         private Long teamId;
         private String teamName;
+        private String sponsorNm;
 
         private Long fileId;
         private String path;

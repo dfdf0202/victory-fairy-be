@@ -80,6 +80,32 @@ public class GameMatchCustomRepositoryImpl extends QuerydslRepositorySupport imp
                 .fetchOne());
     }
 
+    @Override
+    public List<GameMatchEntity> findByTeamIdIn(Long teamId, LocalDate matchAt) {
+        return jpaQueryFactory
+                .select(Projections.fields(GameMatchEntity.class
+                        , gameMatchEntity.id
+                        , gameMatchEntity.type
+                        , gameMatchEntity.series
+                        , gameMatchEntity.season
+                        , gameMatchEntity.matchAt
+                        , gameMatchEntity.awayTeamEntity
+                        , gameMatchEntity.awayNm
+                        , gameMatchEntity.awayScore
+                        , gameMatchEntity.homeTeamEntity
+                        , gameMatchEntity.homeNm
+                        , gameMatchEntity.homeScore
+                        , stadiumEntity
+                        , gameMatchEntity.status
+                        , gameMatchEntity.reason
+                        , gameMatchEntity.isMatchInfoCraw
+                ))
+                .from(gameMatchEntity)
+                .leftJoin(stadiumEntity).on(gameMatchEntity.stadiumEntity.id.eq(stadiumEntity.id))
+                .where(this.eqTeamId(teamId).and(this.eqMatchAt(matchAt)))
+                .fetch();
+    }
+
     private BooleanExpression eqMatchAt(LocalDate matchAt) {
         if (matchAt == null) {
             return null;

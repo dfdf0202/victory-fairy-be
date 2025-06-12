@@ -16,6 +16,8 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "Member", description = "회원")
 @RestController
 @RequestMapping("/member")
@@ -77,7 +79,7 @@ public class MemberController {
     @SecurityRequirement(name = "accessToken")
     @Operation(summary = "관심 팀 경기")
     @GetMapping("/match-today")
-    public CustomResponse<MatchDomain.MatchInfoResponse> findInterestMatch() {
+    public CustomResponse<List<MatchDomain.MatchInfoResponse>> findInterestMatch() {
         var response = matchService.findByTeam();
         return CustomResponse.ok(response);
     }

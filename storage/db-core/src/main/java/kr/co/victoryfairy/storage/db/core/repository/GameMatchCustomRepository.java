@@ -11,4 +11,6 @@ public interface GameMatchCustomRepository {
     List<GameMatchEntity> findByMatchAt(LocalDate matchAt);
 
     Optional<GameMatchEntity> findByTeamId(Long teamId, LocalDate matchAt);
+
+    List<GameMatchEntity> findByTeamIdIn(Long teamId, LocalDate matchAt);
 }

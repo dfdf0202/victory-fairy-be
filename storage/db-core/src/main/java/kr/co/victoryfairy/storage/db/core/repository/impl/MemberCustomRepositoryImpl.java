@@ -36,6 +36,7 @@ public class MemberCustomRepositoryImpl extends QuerydslRepositorySupport implem
                         , memberInfoEntity.snsType
                         , teamEntity.id.as("teamId")
                         , teamEntity.name.as("teamName")
+                        , teamEntity.sponsorNm
                         , fileEntity.id.as("fileId")
                         , fileEntity.path
                         , fileEntity.saveName

@@ -12,5 +12,5 @@ public interface MatchService {
 
     MatchDomain.RecordResponse findRecordById(String id);
 
-    MatchDomain.MatchInfoResponse findByTeam();
+    List<MatchDomain.MatchInfoResponse> findByTeam();
 }

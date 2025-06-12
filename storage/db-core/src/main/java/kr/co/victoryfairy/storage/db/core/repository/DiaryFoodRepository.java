@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface DiaryFoodRepository extends JpaRepository<DiaryFoodEntity,Long> {
     List<DiaryFoodEntity> findByDiaryEntityId(Long diaryId);
+    List<DiaryFoodEntity> findAllByDiaryEntityIdIn(List<Long> diaryId);
 }

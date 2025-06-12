@@ -15,4 +15,17 @@ public interface MyPageService {
      * @return
      */
     MyPageDomain.VictoryPowerResponse findVictoryPower();
+
+    /**
+     * 마이페이지 - 관람 분석
+     * @param season
+     * @return
+     */
+    MyPageDomain.ReportResponse findReport(String season);
+
+    /**
+     * 마이페이지 - 회원 탈퇴
+     * @param request
+     */
+    void deleteMember(MyPageDomain.DeleteAccountRequest request);
 }

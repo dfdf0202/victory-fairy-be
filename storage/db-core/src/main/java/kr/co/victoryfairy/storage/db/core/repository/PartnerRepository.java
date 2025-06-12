@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface PartnerRepository extends JpaRepository<PartnerEntity,Long> {
     List<PartnerEntity> findByDiaryEntityId(Long diaryId);
+    List<PartnerEntity> findAllByDiaryEntityIdIn(List<Long> diaryId);
 }

@@ -6,11 +6,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.co.victoryfairy.core.api.domain.MyPageDomain;
 import kr.co.victoryfairy.core.api.service.MemberService;
 import kr.co.victoryfairy.core.api.service.MyPageService;
+import kr.co.victoryfairy.support.constant.MessageEnum;
 import kr.co.victoryfairy.support.model.CustomResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @Tag(name = "My Page", description = "미이 페이지")
 @RestController
@@ -29,10 +30,26 @@ public class MyPageController {
     }
 
     @SecurityRequirement(name = "accessToken")
-    @Operation(summary = "유저 정보")
+    @Operation(summary = "승요 레벨")
     @GetMapping("/victory-power")
     public CustomResponse<MyPageDomain.VictoryPowerResponse> findVictoryPower() {
         var response = myPageService.findVictoryPower();
         return CustomResponse.ok(response);
+    }
+
+    @SecurityRequirement(name = "accessToken")
+    @Operation(summary = "관람 분석")
+    @GetMapping("/report")
+    public CustomResponse<MyPageDomain.ReportResponse> findReport(@RequestParam(required = false) String season) {
+        var response = myPageService.findReport(season);
+        return CustomResponse.ok(response);
+    }
+
+    @SecurityRequirement(name = "accessToken")
+    @Operation(summary = "회원 탈퇴")
+    @DeleteMapping("/delete-account")
+    public CustomResponse<MessageEnum> deleteMember(@RequestBody MyPageDomain.DeleteAccountRequest request) {
+        myPageService.deleteMember(request);
+        return CustomResponse.ok(MessageEnum.Common.REQUEST);
     }
 }
