@@ -239,7 +239,9 @@ public class BatchServiceImpl implements BatchService {
 
         for (var entity : matches) {
 
-            if (entity.getStatus().equals(MatchEnum.MatchStatus.READY) || entity.getIsMatchInfoCraw()) {
+            if (entity.getStatus().equals(MatchEnum.MatchStatus.READY) ||
+                entity.getStatus().equals(MatchEnum.MatchStatus.CANCELED) ||
+                entity.getIsMatchInfoCraw()) {
                 continue;
             }
 
