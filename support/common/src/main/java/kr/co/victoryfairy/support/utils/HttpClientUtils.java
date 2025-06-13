@@ -98,7 +98,6 @@ public class HttpClientUtils {
                 List<NameValuePair> paramList = new ArrayList<NameValuePair>();
                 for (String key : param.keySet()) {
                     paramList.add(new BasicNameValuePair(key, param.get(key)));
-                    System.out.format("param list:" + paramList + "\n");
                 }
 
                 UrlEncodedFormEntity entity = new UrlEncodedFormEntity(paramList);
