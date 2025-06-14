@@ -147,13 +147,15 @@ public class MatchServiceImpl implements MatchService {
             matchList.add(matchDto);
         }
 
-        matchList = matchList.stream().sorted((m1, m2) -> {
-                    boolean m1HasTeam = (m1.awayTeam() != null && m1.awayTeam().id() == teamEntity.getId()) ||
-                            (m1.homeTeam() != null && m1.homeTeam().id() == teamEntity.getId());
-                    boolean m2HasTeam = (m2.awayTeam() != null && m2.awayTeam().id() == teamEntity.getId()) ||
-                            (m2.homeTeam() != null && m2.homeTeam().id() == teamEntity.getId());
-                    return Boolean.compare(!m1HasTeam, !m2HasTeam);  // true가 뒤로 가도록 정렬
-                }).toList();
+        if (teamEntity != null) {
+            matchList = matchList.stream().sorted((m1, m2) -> {
+                        boolean m1HasTeam = (m1.awayTeam() != null && m1.awayTeam().id() == teamEntity.getId()) ||
+                                (m1.homeTeam() != null && m1.homeTeam().id() == teamEntity.getId());
+                        boolean m2HasTeam = (m2.awayTeam() != null && m2.awayTeam().id() == teamEntity.getId()) ||
+                                (m2.homeTeam() != null && m2.homeTeam().id() == teamEntity.getId());
+                        return Boolean.compare(!m1HasTeam, !m2HasTeam);  // true가 뒤로 가도록 정렬
+                    }).toList();
+        }
 
         return new MatchDomain.MatchListResponse(date, matchList);
     }
