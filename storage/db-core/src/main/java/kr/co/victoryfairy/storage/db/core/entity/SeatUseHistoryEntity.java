@@ -17,9 +17,9 @@ public class SeatUseHistoryEntity extends BaseEntity{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;                    // 좌석 이용 내역 식별자
 
-    @ManyToOne
+    /*@ManyToOne
     @JoinColumn(name = "seat_id")
-    private SeatEntity seatEntity;                  // 좌석 식별자
+    private SeatEntity seatEntity;                  // 좌석 식별자*/
 
     @OneToOne
     @JoinColumn(name = "diary_id")

@@ -54,8 +54,8 @@ public interface DiaryDomain {
     ) {}
 
     record SeatUseHistoryDto(
-            @Schema(description = "좌석 식별자", example = "1")
-            Long id,           // 좌석 식별자
+            /*@Schema(description = "좌석 식별자", example = "1")
+            Long id,           // 좌석 식별자*/
 
             @Schema(description = "좌석 이름")
             String name,     // 좌석 번호
