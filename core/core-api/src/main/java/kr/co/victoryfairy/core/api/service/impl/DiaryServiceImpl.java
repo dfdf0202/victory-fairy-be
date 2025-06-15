@@ -113,7 +113,7 @@ public class DiaryServiceImpl implements DiaryService {
                         .diaryEntity(diaryEntity)
                         .name(partnerDto.name())
                         .teamName(teamNm)
-                        .teamEntity(teamEntity)
+                        .teamEntity(partnerTeamEntity)
                         .build();
                 partnerEntityList.add(partnerEntity);
             }
