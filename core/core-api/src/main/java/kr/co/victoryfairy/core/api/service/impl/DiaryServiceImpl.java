@@ -287,7 +287,7 @@ public class DiaryServiceImpl implements DiaryService {
         var diaryEntity = diaryRepository.findByMemberIdAndId(id, diaryId)
                 .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
-        var gameRecordEntity = gameRecordRepository.findByMemberAndDiaryId(member, diaryEntity);
+        var gameRecordEntity = gameRecordRepository.findByMemberAndDiaryEntityId(member, diaryEntity);
         gameRecordRepository.delete(gameRecordEntity);
 
         var bfFileRefEntity = fileRefRepository.findAllByRefTypeAndRefIdAndIsUseTrue(RefType.DIARY, diaryId);
