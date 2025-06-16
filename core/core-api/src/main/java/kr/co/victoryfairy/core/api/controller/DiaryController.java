@@ -34,6 +34,24 @@ public class DiaryController {
     }
 
     @SecurityRequirement(name = "accessToken")
+    @Operation(summary = "일기 수정")
+    @PatchMapping("/{id}")
+    public CustomResponse<MessageEnum> updateDiary(@PathVariable Long diaryId, @RequestBody DiaryDomain.UpdateRequest request){
+        diaryService.updateDiary(diaryId, request);
+        return CustomResponse.ok(MessageEnum.Common.SAVE);
+    }
+
+    @SecurityRequirement(name = "accessToken")
+    @Operation(summary = "일기 수정")
+    @DeleteMapping("/{id}")
+    public CustomResponse<MessageEnum> deleteDiary(@PathVariable Long diaryId){
+        diaryService.deleteDiary(diaryId);
+        return CustomResponse.ok(MessageEnum.Common.SAVE);
+    }
+
+
+
+    @SecurityRequirement(name = "accessToken")
     @Operation(summary = "일기 목록")
     @GetMapping("/list")
     public CustomResponse<List<DiaryDomain.ListResponse>> findList(@RequestParam @DateTimeFormat(pattern = "yyyyMM") YearMonth date) {

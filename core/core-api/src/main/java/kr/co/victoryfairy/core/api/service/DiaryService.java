@@ -11,6 +11,10 @@ public interface DiaryService {
 
     void writeDiary(DiaryDomain.WriteRequest diaryDto);
 
+    void updateDiary(Long diaryId, DiaryDomain.UpdateRequest request);
+
+    void deleteDiary(Long diaryId);
+
     List<DiaryDomain.ListResponse> findList(YearMonth date);
 
     List<DiaryDomain.DailyListResponse> findDailyList(LocalDate date);

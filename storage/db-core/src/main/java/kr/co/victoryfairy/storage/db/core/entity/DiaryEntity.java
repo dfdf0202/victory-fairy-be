@@ -58,4 +58,13 @@ public class DiaryEntity extends BaseEntity{
     public void updateRated() {
         this.isRated = true;
     }
+
+    public void updateDiary(String teamName, TeamEntity teamEntity, DiaryEnum.ViewType viewType, DiaryEnum.MoodType moodType, String content) {
+        this.teamName = teamName;
+        this.teamEntity = teamEntity;
+        this.viewType = viewType;
+        this.moodType = moodType;
+        this.content = content;
+        update();
+    }
 }

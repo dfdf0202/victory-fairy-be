@@ -36,6 +36,7 @@ public class DiaryServiceImpl implements DiaryService {
     private final SeatReviewRepository seatReviewRepository;
     private final PartnerRepository partnerRepository;
     private final GameMatchRepository gameMatchRepository;
+    private final GameRecordRepository gameRecordRepository;
     private final MemberRepository memberRepository;
     private final TeamRepository teamRepository;
 
@@ -153,6 +154,157 @@ public class DiaryServiceImpl implements DiaryService {
             var writeEventDto = new DiaryDomain.WriteEventDto(diaryDto.gameMatchId(), id, diaryEntity.getId(), EventType.DIARY);
             redisHandler.pushEvent("write_diary", writeEventDto);
         }
+    }
+
+    @Override
+    @Transactional
+    public void updateDiary(Long diaryId, DiaryDomain.UpdateRequest request) {
+        var id = RequestUtils.getId();
+        if (id == null) {
+            throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
+        }
+
+        MemberEntity member = memberRepository.findById(Objects.requireNonNull(id))
+                .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        var teamEntity = teamRepository.findById(request.teamId())
+                .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+
+        var diaryEntity = diaryRepository.findByMemberIdAndId(id, diaryId)
+                .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        diaryEntity.updateDiary(
+                teamEntity.getName(),
+                teamEntity,
+                request.viewType(),
+                request.mood(),
+                request.content()
+        );
+        diaryRepository.save(diaryEntity);
+
+        if (!request.fileId().isEmpty()) {
+            // 기존 이미지 삭제 처리
+            var bfFileRefEntity = fileRefRepository.findAllByRefTypeAndRefIdAndIsUseTrue(RefType.DIARY, diaryId);
+            fileRefRepository.deleteAll(bfFileRefEntity);
+
+            var fileEntities = fileRepository.findAllById(request.fileId());
+            var fileRefEntities = fileEntities.stream()
+                    .map(file -> FileRefEntity.builder()
+                            .fileEntity(file)
+                            .refId(diaryEntity.getId())
+                            .refType(RefType.DIARY)
+                            .build()
+                    )
+                    .toList();
+            fileRefRepository.saveAll(fileRefEntities);
+        }
+
+        // 선택 입력값인 음식 리스트가 비어있지 않는 경우
+        if (!request.foodNameList().isEmpty()) {
+            // 기존 데이터 삭제 처리
+            var bfFoodEntities = diaryFoodRepository.findByDiaryEntityId(diaryId);
+            diaryFoodRepository.deleteAll(bfFoodEntities);
+
+            List<DiaryFoodEntity> foodList = new ArrayList<>();
+            for (String food : request.foodNameList()) {
+                DiaryFoodEntity diaryFoodEntity = DiaryFoodEntity.builder()
+                        .diaryEntity(diaryEntity)
+                        .foodName(food)
+                        .build();
+                foodList.add(diaryFoodEntity);
+
+            }
+            diaryFoodRepository.saveAll(foodList);
+        }
+
+        // 선택 입력값인 함께한 사람 리스트가 비어있지 않는 경우
+        if (!request.partnerList().isEmpty()) {
+            // 기존 데이터 삭제 처리
+            var bfPartnerEntities = partnerRepository.findByDiaryEntityId(diaryId);
+            partnerRepository.deleteAll(bfPartnerEntities);
+
+            List<PartnerEntity> partnerEntityList = new ArrayList<>();
+            for (DiaryDomain.PartnerDto partnerDto : request.partnerList()) {
+                var partnerTeamEntity = teamRepository.findById(partnerDto.teamId())
+                        .orElse(null);
+
+                var teamNm = partnerTeamEntity != null ? partnerTeamEntity.getName() : null;
+
+                PartnerEntity partnerEntity = PartnerEntity.builder()
+                        .diaryEntity(diaryEntity)
+                        .name(partnerDto.name())
+                        .teamName(teamNm)
+                        .teamEntity(partnerTeamEntity)
+                        .build();
+                partnerEntityList.add(partnerEntity);
+            }
+            partnerRepository.saveAll(partnerEntityList);
+        }
+
+        //
+        DiaryDomain.SeatUseHistoryDto diaryDtoSeat = request.seat();
+        if (diaryDtoSeat != null) {
+            // 기존 데이터 삭제 처리
+            var bfSeatUseHistoryEntity = seatUseHistoryRepository.findByDiaryEntityId(diaryId);
+            var bfSeatReviewEntities = seatReviewRepository.findBySeatUseHistoryEntity(bfSeatUseHistoryEntity);
+
+            if (!bfSeatReviewEntities.isEmpty()) {
+                seatReviewRepository.deleteAll(bfSeatReviewEntities);
+            }
+            seatUseHistoryRepository.delete(bfSeatUseHistoryEntity);
+
+            // 좌석 이용 내역 저장
+            SeatUseHistoryEntity seatUseHistoryEntity = SeatUseHistoryEntity.builder()
+                    .diaryEntity(diaryEntity)
+                    .seatName(diaryDtoSeat.name())
+                    .build();
+            seatUseHistoryRepository.save(seatUseHistoryEntity);
+
+            // 좌석 리뷰 저장
+            List<SeatReviewEntity> reviewList = new ArrayList<>();
+            for (String review : diaryDtoSeat.desc()) {
+                SeatReviewEntity seatReviewEntity = SeatReviewEntity.builder()
+                        .seatUseHistoryEntity(seatUseHistoryEntity)
+                        .seatReview(review)
+                        .build();
+                reviewList.add(seatReviewEntity);
+            }
+            seatReviewRepository.saveAll(reviewList);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void deleteDiary(Long diaryId) {
+        var id = RequestUtils.getId();
+        if (id == null) {
+            throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
+        }
+        MemberEntity member = memberRepository.findById(Objects.requireNonNull(id))
+                .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        var diaryEntity = diaryRepository.findByMemberIdAndId(id, diaryId)
+                .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        var gameRecordEntity = gameRecordRepository.findByMemberAndDiaryId(member, diaryEntity);
+        gameRecordRepository.delete(gameRecordEntity);
+
+        var bfFileRefEntity = fileRefRepository.findAllByRefTypeAndRefIdAndIsUseTrue(RefType.DIARY, diaryId);
+        fileRefRepository.deleteAll(bfFileRefEntity);
+
+        var bfFoodEntities = diaryFoodRepository.findByDiaryEntityId(diaryId);
+        diaryFoodRepository.deleteAll(bfFoodEntities);
+
+        var bfPartnerEntities = partnerRepository.findByDiaryEntityId(diaryId);
+        partnerRepository.deleteAll(bfPartnerEntities);
+
+        var bfSeatUseHistoryEntity = seatUseHistoryRepository.findByDiaryEntityId(diaryId);
+        var bfSeatReviewEntities = seatReviewRepository.findBySeatUseHistoryEntity(bfSeatUseHistoryEntity);
+        seatReviewRepository.deleteAll(bfSeatReviewEntities);
+        seatUseHistoryRepository.delete(bfSeatUseHistoryEntity);
+
+        diaryRepository.delete(diaryEntity);
     }
 
     @Override
