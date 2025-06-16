@@ -493,7 +493,8 @@ public class DiaryServiceImpl implements DiaryService {
                 seatUseHistoryDto,
                 diaryEntity.getContent(),
                 partnerList,
-                diaryEntity.getCreatedAt()
+                diaryEntity.getCreatedAt(),
+                diaryEntity.getUpdatedAt()
         );
     }
 

@@ -159,7 +159,10 @@ public interface DiaryDomain {
             @Schema(description = "함께한 사람 리스트")
             List<PartnerDto> partnerList,       // 함께한 사람 리스트
 
-            LocalDateTime createdAt
+            @Schema(description = "등록 일자")
+            LocalDateTime createdAt,
+            @Schema(description = "수정 일자")
+            LocalDateTime updatedAt
     ) {}
 
 }
