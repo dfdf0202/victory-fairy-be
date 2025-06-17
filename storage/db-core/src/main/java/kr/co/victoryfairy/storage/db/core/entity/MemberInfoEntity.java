@@ -25,7 +25,7 @@ public class MemberInfoEntity {
     private MemberEntity memberEntity;
 
     @Comment("응원 팀")
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_id")
     private TeamEntity teamEntity;
 
