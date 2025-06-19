@@ -24,10 +24,10 @@ public class AccessTokenUtils {
     //private final JwtProperties jwtProperties;
 
     public static String getAccessToken(HttpServletRequest request) {
-        var accessToken = request.getHeader("accessToken");
+        var accessToken = request.getHeader("Authorization");
         log.info("accessToken : {}", accessToken);
-        if (StringUtils.isNotEmpty(accessToken)) {
-            return accessToken;
+        if (StringUtils.isNotEmpty(accessToken) && accessToken.startsWith("Bearer ")) {
+            return accessToken.substring(7); // "Bearer " 접두사 제거
         }
         return null;
     }
