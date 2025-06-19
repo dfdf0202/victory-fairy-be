@@ -318,7 +318,7 @@ public class BatchServiceImpl implements BatchService {
 
         // 테스트 모드 여부 (true 로 하면 테스트 consumer 사용)
 
-        String consumerName = "batch_consumer";
+        String consumerName = "event_consumer";
 
         var pendingSummary = redisOperator.pendingSummary(streamKey, groupName);
 
@@ -352,6 +352,8 @@ public class BatchServiceImpl implements BatchService {
 
                                     if (diaryEntity.getIsRated()) {
                                         logger.info("DiaryId {} already rated, skip.", diaryEntity.getId());
+                                        redisOperator.ack(streamKey, groupName, recordMessage.getId().getValue());
+                                        redisHandler.eventKnowEdge(streamKey, groupName, recordMessage.getId().getValue());
                                         return;
                                     }
 
