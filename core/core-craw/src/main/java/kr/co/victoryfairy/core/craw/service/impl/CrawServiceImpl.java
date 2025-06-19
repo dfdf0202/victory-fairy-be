@@ -9,6 +9,8 @@ import io.dodn.springboot.core.enums.TeamEnum;
 import kr.co.victoryfairy.core.craw.service.CrawService;
 import kr.co.victoryfairy.storage.db.core.entity.*;
 import kr.co.victoryfairy.storage.db.core.repository.*;
+import kr.co.victoryfairy.support.constant.MessageEnum;
+import kr.co.victoryfairy.support.exception.CustomException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -249,10 +251,6 @@ public class CrawServiceImpl implements CrawService {
                 .filter(match -> MatchEnum.MatchStatus.END.equals(match.getStatus()))
                 .toList();
 
-        if (matches.isEmpty()) {
-            // TODO : 공통 Exception 생성 후 처리
-        }
-
         List<HitterRecordEntity> hitterEntities = new ArrayList<>();
         List<PitcherRecordEntity> pitcherEntities = new ArrayList<>();
 
@@ -289,6 +287,56 @@ public class CrawServiceImpl implements CrawService {
                             .build();
                 gameMatchRepository.save(match);
             });
+
+            browser.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        hitterRecordRepository.saveAll(hitterEntities);
+        pitcherRecordRepository.saveAll(pitcherEntities);
+    }
+
+    @Override
+    public void crawMatchDetailById(String id) {
+        var match = gameMatchRepository.findById(id)
+                .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        List<HitterRecordEntity> hitterEntities = new ArrayList<>();
+        List<PitcherRecordEntity> pitcherEntities = new ArrayList<>();
+
+        try (Playwright playwright = Playwright.create()) {
+
+            Browser browser = playwright.chromium().launch();
+            Page page = browser.newPage();
+            page.navigate("https://m.koreabaseball.com/Kbo/Live/Record.aspx?p_le_id=1&p_sr_id=" + match.getSeries().getValue() + "&p_g_id=" + match.getId());
+
+            page.waitForSelector("#HitterRank table tbody tr"); // 타자
+            page.waitForSelector("#PitcherRank table tbody tr"); // 투수
+            var awayHitter = this.scrapeHitterTable(page, false, match.getSeason(), match);
+            page.waitForTimeout(500);
+            var awayPitcher = this.scrapPitcherTable(page, false, match.getSeason(), match);
+
+            // 탭 클릭해서 원정팀으로 전환
+            page.click("#liveRecordSubTabB");
+            page.waitForTimeout(1000); // 탭 전환 후 데이터 로딩 기다림
+
+            page.waitForSelector("#HitterRank table tbody tr"); // 타자
+            page.waitForSelector("#PitcherRank table tbody tr"); // 투수
+            var homeHitter = this.scrapeHitterTable(page, true, match.getSeason(), match);
+            page.waitForTimeout(500);
+            var homePitcher = this.scrapPitcherTable(page, true, match.getSeason(), match);
+
+            hitterEntities.addAll(awayHitter);
+            hitterEntities.addAll(homeHitter);
+            pitcherEntities.addAll(awayPitcher);
+            pitcherEntities.addAll(homePitcher);
+
+            match = match.toBuilder()
+                    .isMatchInfoCraw(true)
+                    .build();
+            gameMatchRepository.save(match);
 
             browser.close();
 

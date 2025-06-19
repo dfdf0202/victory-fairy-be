@@ -3,10 +3,7 @@ package kr.co.victoryfairy.core.craw.controller;
 import kr.co.victoryfairy.core.craw.service.CrawService;
 import kr.co.victoryfairy.support.constant.MessageEnum;
 import kr.co.victoryfairy.support.model.CustomResponse;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/craw")
@@ -27,6 +24,12 @@ public class CrawController {
     @GetMapping("/match-detail")
     public CustomResponse<MessageEnum> getMatchDetail(@RequestParam(name = "sYear") String sYear) {
         crawService.crawMatchDetail(sYear);
+        return CustomResponse.ok(MessageEnum.Common.REQUEST);
+    }
+
+    @GetMapping("/match-detail/{id}")
+    public CustomResponse<MessageEnum> getMatchDetailById(@PathVariable String id) {
+        crawService.crawMatchDetailById(id);
         return CustomResponse.ok(MessageEnum.Common.REQUEST);
     }
 }
