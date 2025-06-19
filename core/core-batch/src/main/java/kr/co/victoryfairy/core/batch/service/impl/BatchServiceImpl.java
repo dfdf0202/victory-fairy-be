@@ -281,7 +281,7 @@ public class BatchServiceImpl implements BatchService {
                 e.printStackTrace();
             }
 
-            if (entity.getStatus().equals(MatchEnum.MatchStatus.END)) {
+            if (entity.getStatus().equals(MatchEnum.MatchStatus.END) || entity.getStatus().equals(MatchEnum.MatchStatus.CANCELED)) {
                 // 저장 후 game_match is_match_info_craw true 처리
                 entity = entity.toBuilder()
                         .isMatchInfoCraw(true)
