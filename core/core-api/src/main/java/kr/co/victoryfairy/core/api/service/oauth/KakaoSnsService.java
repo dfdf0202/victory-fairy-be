@@ -46,6 +46,7 @@ public class KakaoSnsService implements OauthService {
     public MemberDomain.MemberSns parseSnsInfo(MemberDomain.MemberLoginRequest request) {
         log.info("================kakaoCallback=============");
         log.info("code: {} , state: {}", request.code());
+        log.info("orgCallbackUrl: {} , state: {}", kakaoCallbackUrl);
 
         var url = "https://kauth.kakao.com/oauth/token";
 
@@ -53,7 +54,7 @@ public class KakaoSnsService implements OauthService {
         param.put("grant_type", "authorization_code");
         param.put("client_id", kakaoClientId);
         param.put("client_secret", kakaoClientSecret);
-        param.put("redirect_uri", request.loginCallbackUrl());
+        param.put("redirect_uri", kakaoCallbackUrl);
         param.put("code", request.code());
 
         ObjectMapper mapper = new ObjectMapper();

@@ -53,7 +53,7 @@ public class GoogleSnsService implements OauthService {
         param.put("grant_type", "authorization_code");
         param.put("client_id", googleClientId);
         param.put("client_secret", googleClientSecret);
-        param.put("redirect_uri", request.loginCallbackUrl());
+        param.put("redirect_uri", googleCallbackUrl);
         param.put("code", request.code());
 
         ObjectMapper mapper = new ObjectMapper();

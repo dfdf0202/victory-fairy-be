@@ -77,10 +77,7 @@ public interface MemberDomain {
             String code,
 
             @Schema(description = "sns 타입", example = "KAKAO", implementation = MemberEnum.SnsType.class)
-            MemberEnum.SnsType snsType,
-
-            @Schema(description = "로그인 콜백 URL", example = "http://localhost:8080/auth/callbackKakao")
-            String loginCallbackUrl
+            MemberEnum.SnsType snsType
     ) {}
 
     @Schema(name = "Member.MemberTeamUpdateRequest")

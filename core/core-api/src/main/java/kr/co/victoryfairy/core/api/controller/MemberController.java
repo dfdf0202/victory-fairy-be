@@ -45,6 +45,12 @@ public class MemberController {
         return CustomResponse.ok(response);
     }
 
+    @Operation(summary = "로그아웃")
+    @GetMapping("/logout")
+    public CustomResponse<MessageEnum> logout() {
+        return CustomResponse.ok(MessageEnum.Auth.LOGOUT);
+    }
+
     @SecurityRequirement(name = "accessToken")
     @Operation(summary = "관심 팀 등록")
     @PutMapping("/team")
