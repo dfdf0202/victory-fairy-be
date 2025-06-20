@@ -54,8 +54,8 @@ public class EventService {
         var awayTeam = matchEntity.getAwayTeamEntity();
         var homeTeam = matchEntity.getHomeTeamEntity();
 
-        var awayScore = matchEntity.getAwayScore();
-        var homeScore = matchEntity.getHomeScore();
+        var awayScore = matchEntity.getAwayScore() != null ? matchEntity.getAwayScore() : 0;
+        var homeScore = matchEntity.getHomeScore() != null ? matchEntity.getHomeScore() : 0;
 
         var isAway = awayTeam.getId().equals(teamEntity.getId());
 
@@ -93,7 +93,7 @@ public class EventService {
         var matchEntity = matchRepository.findById(eventDto.gameId())
                 .orElse(null);
 
-        if (!matchEntity.getStatus().equals(MatchEnum.MatchStatus.END)) {
+        if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.PROGRESS)) {
             return;
         }
 

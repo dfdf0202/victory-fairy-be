@@ -150,7 +150,7 @@ public class DiaryServiceImpl implements DiaryService {
         }
 
         // Event 발급
-        if (gameMatchEntity.getStatus().equals(MatchEnum.MatchStatus.END)) {
+        if (gameMatchEntity.getStatus().equals(MatchEnum.MatchStatus.END) || gameMatchEntity.getStatus().equals(MatchEnum.MatchStatus.CANCELED)) {
             var writeEventDto = new DiaryDomain.WriteEventDto(diaryDto.gameMatchId(), id, diaryEntity.getId(), EventType.DIARY);
             redisHandler.pushEvent("write_diary", writeEventDto);
         }

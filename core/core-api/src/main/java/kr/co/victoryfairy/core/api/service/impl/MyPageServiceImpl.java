@@ -169,11 +169,11 @@ public class MyPageServiceImpl implements MyPageService {
                     .count();
 
             var drawCount = (short) stadiumRecord.stream()
-                    .filter(record -> record.getResultType() == MatchEnum.ResultType.DRAW)
+                    .filter(record -> record.getStatus() != MatchEnum.MatchStatus.CANCELED && record.getResultType() == MatchEnum.ResultType.DRAW)
                     .count();
 
             var cancelCount = (short) stadiumRecord.stream()
-                    .filter(record -> record.getResultType() == MatchEnum.ResultType.CANCEL)
+                    .filter(record -> record.getStatus() == MatchEnum.MatchStatus.CANCELED)
                     .count();
 
             var validGameCount = winCount + loseCount;
@@ -207,11 +207,11 @@ public class MyPageServiceImpl implements MyPageService {
                     .count();
 
             var drawCount = (short) homeRecord.stream()
-                    .filter(record -> record.getResultType() == MatchEnum.ResultType.DRAW)
+                    .filter(record -> record.getStatus() != MatchEnum.MatchStatus.CANCELED && record.getResultType() == MatchEnum.ResultType.DRAW)
                     .count();
 
             var cancelCount = (short) homeRecord.stream()
-                    .filter(record -> record.getResultType() == MatchEnum.ResultType.CANCEL)
+                    .filter(record -> record.getStatus() == MatchEnum.MatchStatus.CANCELED)
                     .count();
 
             var validGameCount = winCount + loseCount;

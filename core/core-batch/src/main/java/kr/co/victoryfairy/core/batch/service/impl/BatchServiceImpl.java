@@ -174,26 +174,30 @@ public class BatchServiceImpl implements BatchService {
                     gameMatchRepository.save(matchEntity);
                 }
                 // 진행 중인 경기의 최종 상태 변경
-                switch (matchStatus) {
-                    case END -> {
-                        matchEntity = matchEntity.toBuilder()
-                                .awayScore(awayScore)
-                                .homeScore(homeScore)
-                                .status(matchStatus)
-                                .build();
-                        gameMatchRepository.save(matchEntity);
+                if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.READY) ||
+                    matchEntity.getStatus().equals(MatchEnum.MatchStatus.PROGRESS)) {
 
-                        var writeEventDto = new WriteEventDto(id, null, null, EventType.BATCH);
-                        redisHandler.pushEvent("write_diary", writeEventDto);
-                    }
-                    case CANCELED -> {
-                        matchEntity = matchEntity.toBuilder()
-                                .reason(reason)
-                                .status(matchStatus)
-                                .build();
-                        gameMatchRepository.save(matchEntity);
-                        var writeEventDto = new WriteEventDto(id, null, null, EventType.BATCH);
-                        redisHandler.pushEvent("write_diary", writeEventDto);
+                    switch (matchStatus) {
+                        case END -> {
+                            matchEntity = matchEntity.toBuilder()
+                                    .awayScore(awayScore)
+                                    .homeScore(homeScore)
+                                    .status(matchStatus)
+                                    .build();
+                            gameMatchRepository.save(matchEntity);
+
+                            var writeEventDto = new WriteEventDto(id, null, null, EventType.BATCH);
+                            redisHandler.pushEvent("write_diary", writeEventDto);
+                        }
+                        case CANCELED -> {
+                            matchEntity = matchEntity.toBuilder()
+                                    .reason(reason)
+                                    .status(matchStatus)
+                                    .build();
+                            gameMatchRepository.save(matchEntity);
+                            var writeEventDto = new WriteEventDto(id, null, null, EventType.BATCH);
+                            redisHandler.pushEvent("write_diary", writeEventDto);
+                        }
                     }
                 }
             }
@@ -339,71 +343,134 @@ public class BatchServiceImpl implements BatchService {
                                 .filter(Objects::nonNull)
                                 .forEach(recordMessage -> {
                                     Map<Object, Object> body = recordMessage.getValue();
-                                    logger.info("TEST MODE - Reprocessing record: {}", body);
+                                    logger.info("Reprocessing record: {}", body);
 
-                                    var memberEntity = memberRepository.findById(Long.parseLong((String) body.get("memberId")))
-                                            .orElse(null);
+                                    var eventType = (EventType) body.get("type");
 
                                     var matchEntity = gameMatchRepository.findById(String.valueOf(body.get("gameId")))
                                             .orElse(null);
 
-                                    var diaryEntity = diaryRepository.findById(Long.parseLong((String) body.get("diaryId")))
-                                            .orElse(null);
+                                    if (eventType.equals(EventType.DIARY)) {
+                                        var memberEntity = memberRepository.findById(Long.parseLong((String) body.get("memberId")))
+                                                .orElse(null);
 
-                                    if (diaryEntity.getIsRated()) {
-                                        logger.info("DiaryId {} already rated, skip.", diaryEntity.getId());
+                                        var diaryEntity = diaryRepository.findById(Long.parseLong((String) body.get("diaryId")))
+                                                .orElse(null);
+
+                                        if (diaryEntity.getIsRated()) {
+                                            logger.info("DiaryId {} already rated, skip.", diaryEntity.getId());
+                                            redisOperator.ack(streamKey, groupName, recordMessage.getId().getValue());
+                                            redisHandler.eventKnowEdge(streamKey, groupName, recordMessage.getId().getValue());
+                                            return;
+                                        }
+
+                                        var teamEntity = teamRepository.findById(diaryEntity.getTeamEntity().getId())
+                                                .orElse(null);
+
+                                        if (memberEntity == null || matchEntity == null || diaryEntity == null || teamEntity == null) {
+                                            return;
+                                        }
+
+                                        var awayTeam = matchEntity.getAwayTeamEntity();
+                                        var homeTeam = matchEntity.getHomeTeamEntity();
+
+                                        var awayScore = matchEntity.getAwayScore() != null ? matchEntity.getAwayScore() : 0;
+                                        var homeScore = matchEntity.getHomeScore() != null ? matchEntity.getHomeScore() : 0;
+
+                                        var isAway = awayTeam.getId().equals(teamEntity.getId());
+
+                                        var myScore = isAway ? awayScore : homeScore;
+                                        var opponentScore = isAway ? homeScore : awayScore;
+
+                                        var isWin = myScore > opponentScore;
+
+                                        var matchResult = (myScore == opponentScore) ? MatchEnum.ResultType.DRAW
+                                                : (isWin ? MatchEnum.ResultType.WIN : MatchEnum.ResultType.LOSS);
+
+                                        var gameRecordEntity = GameRecordEntity.builder()
+                                                .member(memberEntity)
+                                                .diaryEntity(diaryEntity)
+                                                .gameMatchEntity(matchEntity)
+                                                .teamEntity(teamEntity)
+                                                .teamName(teamEntity.getName())
+                                                .opponentTeamEntity(isAway ? homeTeam : awayTeam)
+                                                .opponentTeamName(isAway ? homeTeam.getName() : awayTeam.getName())
+                                                .stadiumEntity(matchEntity.getStadiumEntity())
+                                                .viewType(diaryEntity.getViewType())
+                                                .status(matchEntity.getStatus())
+                                                .resultType(matchResult)
+                                                .season(matchEntity.getSeason())
+                                                .build();
+                                        gameRecordRepository.save(gameRecordEntity);
+
+                                        // 이벤트 적용 여부 업데이트
+                                        diaryEntity.updateRated();
+                                        diaryRepository.save(diaryEntity);
+
+                                        // 실제 처리 로직 넣기 (테스트 시에는 ack 생략 가능, 원하면 ack 넣어도 됨)
                                         redisOperator.ack(streamKey, groupName, recordMessage.getId().getValue());
                                         redisHandler.eventKnowEdge(streamKey, groupName, recordMessage.getId().getValue());
-                                        return;
+                                        logger.info("Acked messageId={}", recordMessage.getId().getValue());
+
+                                    } else {
+                                        var diaryEntities = diaryRepository.findByGameMatchEntityAndIsRatedFalse(matchEntity);
+
+                                        if (diaryEntities.isEmpty()) {
+                                            return;
+                                        }
+
+                                        diaryEntities.forEach(diaryEntity -> {
+                                            if (diaryEntity.getIsRated()) {
+                                                return;
+                                            }
+
+                                            var memberEntity = memberRepository.findById(diaryEntity.getMember().getId())
+                                                    .orElse(null);
+
+                                            var teamEntity = teamRepository.findById(diaryEntity.getTeamEntity().getId())
+                                                    .orElse(null);
+
+                                            var awayTeam = matchEntity.getAwayTeamEntity();
+                                            var homeTeam = matchEntity.getHomeTeamEntity();
+
+                                            var awayScore = matchEntity.getAwayScore() != null ? matchEntity.getAwayScore() : 0;
+                                            var homeScore = matchEntity.getHomeScore() != null ? matchEntity.getHomeScore() : 0;
+
+                                            var isAway = awayTeam.getId().equals(teamEntity.getId());
+
+                                            var myScore = isAway ? awayScore : homeScore;
+                                            var opponentScore = isAway ? homeScore : awayScore;
+
+                                            var isWin = myScore > opponentScore;
+
+                                            var matchResult = (myScore == opponentScore) ? MatchEnum.ResultType.DRAW
+                                                    : (isWin ? MatchEnum.ResultType.WIN : MatchEnum.ResultType.LOSS);
+
+                                            var gameRecordEntity = GameRecordEntity.builder()
+                                                    .member(memberEntity)
+                                                    .diaryEntity(diaryEntity)
+                                                    .gameMatchEntity(matchEntity)
+                                                    .teamEntity(teamEntity)
+                                                    .teamName(teamEntity.getName())
+                                                    .opponentTeamEntity(isAway ? homeTeam : awayTeam)
+                                                    .opponentTeamName(isAway ? homeTeam.getName() : awayTeam.getName())
+                                                    .stadiumEntity(matchEntity.getStadiumEntity())
+                                                    .viewType(diaryEntity.getViewType())
+                                                    .status(matchEntity.getStatus())
+                                                    .resultType(matchResult)
+                                                    .season(matchEntity.getSeason())
+                                                    .build();
+                                            gameRecordRepository.save(gameRecordEntity);
+
+                                            // 이벤트 적용 여부 업데이트
+                                            diaryEntity.updateRated();
+                                            diaryRepository.save(diaryEntity);
+
+                                            // 실제 처리 로직 넣기 (테스트 시에는 ack 생략 가능, 원하면 ack 넣어도 됨)
+                                            redisOperator.ack(streamKey, groupName, recordMessage.getId().getValue());
+                                            redisHandler.eventKnowEdge(streamKey, groupName, recordMessage.getId().getValue());
+                                        });
                                     }
-
-                                    var teamEntity = teamRepository.findById(diaryEntity.getTeamEntity().getId())
-                                            .orElse(null);
-
-                                    if (memberEntity == null || matchEntity == null || diaryEntity == null || teamEntity == null) {
-                                        return;
-                                    }
-
-                                    var awayTeam = matchEntity.getAwayTeamEntity();
-                                    var homeTeam = matchEntity.getHomeTeamEntity();
-
-                                    var awayScore = matchEntity.getAwayScore();
-                                    var homeScore = matchEntity.getHomeScore();
-
-                                    var isAway = awayTeam.getId().equals(teamEntity.getId());
-
-                                    var myScore = isAway ? awayScore : homeScore;
-                                    var opponentScore = isAway ? homeScore : awayScore;
-
-                                    var isWin = myScore > opponentScore;
-
-                                    var matchResult = (myScore == opponentScore) ? MatchEnum.ResultType.DRAW
-                                            : (isWin ? MatchEnum.ResultType.WIN : MatchEnum.ResultType.LOSS);
-
-                                    var gameRecordEntity = GameRecordEntity.builder()
-                                            .member(memberEntity)
-                                            .diaryEntity(diaryEntity)
-                                            .gameMatchEntity(matchEntity)
-                                            .teamEntity(teamEntity)
-                                            .teamName(teamEntity.getName())
-                                            .opponentTeamEntity(isAway ? homeTeam : awayTeam)
-                                            .opponentTeamName(isAway ? homeTeam.getName() : awayTeam.getName())
-                                            .stadiumEntity(matchEntity.getStadiumEntity())
-                                            .viewType(diaryEntity.getViewType())
-                                            .status(matchEntity.getStatus())
-                                            .resultType(matchResult)
-                                            .season(matchEntity.getSeason())
-                                            .build();
-                                    gameRecordRepository.save(gameRecordEntity);
-
-                                    // 이벤트 적용 여부 업데이트
-                                    diaryEntity.updateRated();
-                                    diaryRepository.save(diaryEntity);
-
-                                    // 실제 처리 로직 넣기 (테스트 시에는 ack 생략 가능, 원하면 ack 넣어도 됨)
-                                    redisOperator.ack(streamKey, groupName, recordMessage.getId().getValue());
-                                    redisHandler.eventKnowEdge(streamKey, groupName, recordMessage.getId().getValue());
-                                    logger.info("Acked messageId={}", recordMessage.getId().getValue());
                                 });
                     });
         } else {

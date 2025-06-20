@@ -16,7 +16,6 @@ public interface MemberEnum {
 
     enum SnsType {
         KAKAO,
-        NAVER,
         GOOGLE,
         APPLE
     }

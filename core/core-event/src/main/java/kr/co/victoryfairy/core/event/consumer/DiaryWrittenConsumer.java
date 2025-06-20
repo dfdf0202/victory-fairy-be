@@ -40,7 +40,7 @@ public class DiaryWrittenConsumer {
     @Scheduled(fixedDelay = 1000)
     public void consume() {
         List<MapRecord<String, Object, Object>> messages = redisHandler.getEventMessages(key, group, consumer);
-
+        log.info("========== event  Start ==========");
         for (MapRecord<String, Object, Object> message : messages) {
             try {
                 var event = objectMapper.convertValue(message.getValue(), EventDomain.WriteEventDto.class);
