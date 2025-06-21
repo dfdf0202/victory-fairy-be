@@ -165,17 +165,16 @@ public class BatchServiceImpl implements BatchService {
                 map.put("stadiumId", stadiumEntity.getId());
 
                 redisHandler.pushHash(formattedDate + "_match_list", id, map);
-                // 진행 예정인 대회 진행중 처리
-                if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.READY)) {
+
+                // 경기 상태 변경
+                if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.READY) ||
+                    matchEntity.getStatus().equals(MatchEnum.MatchStatus.PROGRESS)) {
+
                     matchEntity = matchEntity.toBuilder()
                             .reason(reason)
                             .status(matchStatus)
                             .build();
                     gameMatchRepository.save(matchEntity);
-                }
-                // 진행 중인 경기의 최종 상태 변경
-                if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.READY) ||
-                    matchEntity.getStatus().equals(MatchEnum.MatchStatus.PROGRESS)) {
 
                     switch (matchStatus) {
                         case END -> {

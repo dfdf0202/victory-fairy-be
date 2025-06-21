@@ -18,12 +18,12 @@ public class ScoreJob {
         batchService.batchScore();
     }
 
-    @Scheduled(cron = "${batch.check.info}", zone = "Asia/Seoul")
+    //@Scheduled(cron = "${batch.check.info}", zone = "Asia/Seoul")
     public void checkInfo() {
         batchService.batchMatchInfo();
     }
 
-    @Scheduled(fixedDelay = 60000)
+    //@Scheduled(fixedDelay = 60000)
     public void checkEvent() {
         batchService.checkEvent();
     }
