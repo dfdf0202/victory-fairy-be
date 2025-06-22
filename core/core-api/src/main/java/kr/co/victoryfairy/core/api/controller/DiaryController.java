@@ -36,8 +36,8 @@ public class DiaryController {
     @SecurityRequirement(name = "accessToken")
     @Operation(summary = "일기 수정")
     @PatchMapping("/{id}")
-    public CustomResponse<MessageEnum> updateDiary(@PathVariable Long diaryId, @RequestBody DiaryDomain.UpdateRequest request){
-        diaryService.updateDiary(diaryId, request);
+    public CustomResponse<MessageEnum> updateDiary(@PathVariable Long id, @RequestBody DiaryDomain.UpdateRequest request){
+        diaryService.updateDiary(id, request);
         return CustomResponse.ok(MessageEnum.Common.SAVE);
     }
 
