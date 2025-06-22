@@ -344,8 +344,7 @@ public class BatchServiceImpl implements BatchService {
                                     Map<Object, Object> body = recordMessage.getValue();
                                     logger.info("Reprocessing record: {}", body);
 
-                                    var eventType = (EventType) body.get("type");
-
+                                    var eventType = EventType.valueOf(String.valueOf(body.get("type")));
                                     var matchEntity = gameMatchRepository.findById(String.valueOf(body.get("gameId")))
                                             .orElse(null);
 

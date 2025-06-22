@@ -19,10 +19,27 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        /*registry.addMapping("/**") // 혹은 "/**"
-                .allowedOrigins("*")
-                .allowedMethods("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*");*/
+        registry.addMapping("/v2/api/**")
+                .allowedOrigins(
+                        "http://localhost:8080",
+                        "http://localhost:3000",
+                        "https://victory-fairy.duckdns.org",
+                        "https://seungyo.shop"
+                )
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true);
+
+        registry.addMapping("/v2/file/**")
+                .allowedOrigins(
+                        "http://localhost:8080",
+                        "http://localhost:3000",
+                        "https://victory-fairy.duckdns.org",
+                        "https://seungyo.shop"
+                )
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true);
     }
 
     @Override

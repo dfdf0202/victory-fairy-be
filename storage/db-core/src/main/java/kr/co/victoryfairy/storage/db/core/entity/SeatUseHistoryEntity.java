@@ -21,7 +21,7 @@ public class SeatUseHistoryEntity extends BaseEntity{
     @JoinColumn(name = "seat_id")
     private SeatEntity seatEntity;                  // 좌석 식별자*/
 
-    @OneToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "diary_id")
     private DiaryEntity diaryEntity;                // 일기 식별자
 

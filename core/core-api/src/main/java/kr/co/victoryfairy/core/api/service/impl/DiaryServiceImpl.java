@@ -226,8 +226,11 @@ public class DiaryServiceImpl implements DiaryService {
 
             List<PartnerEntity> partnerEntityList = new ArrayList<>();
             for (DiaryDomain.PartnerDto partnerDto : request.partnerList()) {
-                var partnerTeamEntity = teamRepository.findById(partnerDto.teamId())
-                        .orElse(null);
+                TeamEntity partnerTeamEntity = null;
+
+                if (partnerDto.teamId() != null) {
+                    partnerTeamEntity = teamRepository.findById(partnerDto.teamId()).orElse(null);
+                }
 
                 var teamNm = partnerTeamEntity != null ? partnerTeamEntity.getName() : null;
 
@@ -478,7 +481,7 @@ public class DiaryServiceImpl implements DiaryService {
                     if (entity == null) {
                         return null;
                     }
-                    return new DiaryDomain.PartnerDto(entity.getName(), entity.getTeamEntity().getId());
+                    return new DiaryDomain.PartnerDto(entity.getName(), entity.getTeamEntity() != null ? entity.getTeamEntity().getId() : null);
                 })
                 .toList();
 
