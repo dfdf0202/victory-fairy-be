@@ -23,7 +23,8 @@ public interface MatchDomain {
             MatchEnum.MatchStatus status,
             String statusDetail,
             TeamDto awayTeam,
-            TeamDto homeTeam
+            TeamDto homeTeam,
+            Boolean isWrited
     ) {}
 
     record TeamDto(
@@ -31,6 +32,18 @@ public interface MatchDomain {
             String name,
             Short score,
             MatchEnum.ResultType result
+    ) {}
+
+    record InterestTeamMatchInfoResponse(
+            String id,
+            LocalDate date,
+            String time,
+            StadiumDto stadium,
+            MatchEnum.MatchStatus status,
+            String statusDetail,
+            TeamDto awayTeam,
+            TeamDto homeTeam,
+            Boolean isWrited
     ) {}
 
     record MatchInfoResponse(

@@ -4,6 +4,7 @@ import io.dodn.springboot.core.enums.DiaryEnum;
 import io.dodn.springboot.core.enums.MatchEnum;
 import kr.co.victoryfairy.core.api.domain.MyPageDomain;
 import kr.co.victoryfairy.core.api.service.MyPageService;
+import kr.co.victoryfairy.storage.db.core.entity.GameRecordEntity;
 import kr.co.victoryfairy.storage.db.core.entity.WithdrawalReasonEntity;
 import kr.co.victoryfairy.storage.db.core.repository.*;
 import kr.co.victoryfairy.support.constant.MessageEnum;
@@ -17,6 +18,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -66,54 +68,15 @@ public class MyPageServiceImpl implements MyPageService {
 
         var recordList = gameRecordRepository.findByMemberAndSeason(memberEntity, year);
 
-        short stadiumWinAvg = 0;
-        short homeWinAvg = 0;
-
         var stadiumRecord = recordList.stream()
                 .filter(record -> record.getViewType() == DiaryEnum.ViewType.STADIUM)
                 .toList();
-
-        if (!stadiumRecord.isEmpty()) {
-            var winCount = (short) stadiumRecord.stream()
-                    .filter(record -> record.getResultType() == MatchEnum.ResultType.WIN)
-                    .count();
-
-            var loseCount = (short) stadiumRecord.stream()
-                    .filter(record -> record.getResultType() == MatchEnum.ResultType.LOSS)
-                    .count();
-
-            var validGameCount = winCount + loseCount;
-
-            if (validGameCount > 0) {
-                double avg = (double) winCount / validGameCount * 100;
-                stadiumWinAvg = (short) Math.round(avg);  // 소수점 첫째자리 반올림
-            }
-        }
-
 
         var homeRecord = recordList.stream()
                 .filter(record -> record.getViewType() == DiaryEnum.ViewType.HOME)
                 .toList();
 
-        if (!homeRecord.isEmpty()) {
-            var winCount = (short) homeRecord.stream()
-                    .filter(record -> record.getResultType() == MatchEnum.ResultType.WIN)
-                    .count();
-
-            var loseCount = (short) homeRecord.stream()
-                    .filter(record -> record.getResultType() == MatchEnum.ResultType.LOSS)
-                    .count();
-
-            var validGameCount = winCount + loseCount;
-
-            if (validGameCount > 0) {
-                double avg = (double) winCount / validGameCount * 100;
-                homeWinAvg = (short) Math.round(avg);  // 소수점 첫째자리 반올림
-            }
-        }
-
-        double avg = (double) (stadiumWinAvg + homeWinAvg) / 2;
-        var power = (short) Math.round(avg);
+        var power = this.getPower(stadiumRecord, homeRecord);
 
         short level = 0;
         if (power >= 0 && power < 20) {
@@ -350,5 +313,57 @@ public class MyPageServiceImpl implements MyPageService {
                 .reason(request.reason())
                 .build();
         withdrawalRepository.save(entity);
+    }
+
+    private Short getPower(List<GameRecordEntity> stadiumRecord, List<GameRecordEntity> homeRecord) {
+        Short stadiumWinAvg = null;
+        Short homeWinAvg = null;
+
+        // 직관 기록이 있는 경우만 계산
+        if (!stadiumRecord.isEmpty()) {
+            var winCount = (short) stadiumRecord.stream()
+                    .filter(record -> record.getResultType() == MatchEnum.ResultType.WIN)
+                    .count();
+
+            var loseCount = (short) stadiumRecord.stream()
+                    .filter(record -> record.getResultType() == MatchEnum.ResultType.LOSS)
+                    .count();
+
+            var validGameCount = winCount + loseCount;
+
+            if (validGameCount > 0) {
+                double avg = (double) winCount / validGameCount * 100;
+                stadiumWinAvg = (short) Math.round(avg);  // 소수점 첫째자리 반올림
+            }
+        }
+
+        // 집관 기록이 있는 경우만 계산
+        if (!homeRecord.isEmpty()) {
+            var winCount = (short) homeRecord.stream()
+                    .filter(record -> record.getResultType() == MatchEnum.ResultType.WIN)
+                    .count();
+
+            var loseCount = (short) homeRecord.stream()
+                    .filter(record -> record.getResultType() == MatchEnum.ResultType.LOSS)
+                    .count();
+
+            var validGameCount = winCount + loseCount;
+
+            if (validGameCount > 0) {
+                double avg = (double) winCount / validGameCount * 100;
+                homeWinAvg = (short) Math.round(avg);  // 소수점 첫째자리 반올림
+            }
+        }
+
+        // 조건 분기 처리
+        if (stadiumWinAvg != null && homeWinAvg != null) {
+            return (short) Math.round((stadiumWinAvg + homeWinAvg) / 2.0);
+        } else if (stadiumWinAvg != null) {
+            return stadiumWinAvg;
+        } else if (homeWinAvg != null) {
+            return homeWinAvg;
+        } else {
+            return 0; // 직관/집관 모두 없음
+        }
     }
 }

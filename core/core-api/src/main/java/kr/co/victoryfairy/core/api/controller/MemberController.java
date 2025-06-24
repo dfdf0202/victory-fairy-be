@@ -85,7 +85,7 @@ public class MemberController {
     @SecurityRequirement(name = "accessToken")
     @Operation(summary = "관심 팀 경기")
     @GetMapping("/match-today")
-    public CustomResponse<List<MatchDomain.MatchInfoResponse>> findInterestMatch() {
+    public CustomResponse<List<MatchDomain.InterestTeamMatchInfoResponse>> findInterestMatch() {
         var response = matchService.findByTeam();
         return CustomResponse.ok(response);
     }
