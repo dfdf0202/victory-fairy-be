@@ -402,7 +402,7 @@ public class MatchServiceImpl implements MatchService {
                     .toList();
 
             if (!awayPitcherObj.isEmpty()) {
-                awayPitcherObj.stream()
+                awayPitchers = awayPitcherObj.stream()
                         .map(data -> new MatchDomain.PitcherRecordDto(
                                 data.name(),
                                 data.position(),
@@ -435,7 +435,7 @@ public class MatchServiceImpl implements MatchService {
             }
 
             if (!homePitcherObj.isEmpty()) {
-                homePitcherObj.stream()
+                homePitchers = homePitcherObj.stream()
                         .map(data -> new MatchDomain.PitcherRecordDto(
                                 data.name(),
                                 data.position(),
@@ -451,7 +451,7 @@ public class MatchServiceImpl implements MatchService {
             }
 
             if (!homeBatterObj.isEmpty()) {
-                homeBatters = awayBatterObj.stream()
+                homeBatters = homeBatterObj.stream()
                         .map(data -> new MatchDomain.BatterRecordDto(
                                 data.name(),
                                 data.position(),
