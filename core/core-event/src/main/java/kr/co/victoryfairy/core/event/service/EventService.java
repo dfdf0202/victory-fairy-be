@@ -4,11 +4,15 @@ import io.dodn.springboot.core.enums.MatchEnum;
 import kr.co.victoryfairy.core.event.model.EventDomain;
 import kr.co.victoryfairy.storage.db.core.entity.GameRecordEntity;
 import kr.co.victoryfairy.storage.db.core.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class EventService {
+
+    private final Logger log = LoggerFactory.getLogger(EventService.class);
 
     private final MemberRepository memberRepository;
     private final DiaryRepository diaryRepository;
@@ -30,7 +34,8 @@ public class EventService {
     }
 
     @Transactional
-    public void processDiary(EventDomain.WriteEventDto eventDto) {
+    public boolean processDiary(EventDomain.WriteEventDto eventDto) {
+        log.info(">>> Start processing diary event: {}", eventDto.diaryId());
         var memberEntity = memberRepository.findById(eventDto.memberId())
                 .orElse(null);
 
@@ -40,15 +45,16 @@ public class EventService {
         var diaryEntity = diaryRepository.findById(eventDto.diaryId())
                 .orElse(null);
 
-        if (diaryEntity.getIsRated()) {
-            return;
+        if (diaryEntity == null || diaryEntity.getIsRated()) {
+            log.info(">>> Diary is null: {}", eventDto.diaryId());
+            return false;
         }
 
         var teamEntity = teamRepository.findById(diaryEntity.getTeamEntity().getId())
                 .orElse(null);
 
-        if (memberEntity == null || matchEntity == null || diaryEntity == null || teamEntity == null) {
-            return;
+        if (memberEntity == null || matchEntity == null || teamEntity == null) {
+            return false;
         }
 
         var awayTeam = matchEntity.getAwayTeamEntity();
@@ -82,25 +88,30 @@ public class EventService {
                 .season(matchEntity.getSeason())
                 .build();
         gameRecordRepository.save(gameRecordEntity);
+        gameRecordRepository.flush();
 
         // 이벤트 적용 여부 업데이트
         diaryEntity.updateRated();
         diaryRepository.save(diaryEntity);
+        diaryRepository.flush();
+
+        log.info(">>> Finished diary event, isRated = {}", diaryEntity.getIsRated());
+        return true;
     }
 
     @Transactional
-    public void processBatch(EventDomain.WriteEventDto eventDto) {
+    public boolean processBatch(EventDomain.WriteEventDto eventDto) {
         var matchEntity = matchRepository.findById(eventDto.gameId())
                 .orElse(null);
 
         if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.PROGRESS)) {
-            return;
+            return false;
         }
 
         var diaryEntities = diaryRepository.findByGameMatchEntityAndIsRatedFalse(matchEntity);
 
         if (diaryEntities.isEmpty()) {
-            return;
+            return false;
         }
 
         diaryEntities.forEach(diaryEntity -> {
@@ -149,6 +160,8 @@ public class EventService {
 
             diaryEntity.updateRated();
             diaryRepository.save(diaryEntity);
+
         });
+        return true;
     }
 }

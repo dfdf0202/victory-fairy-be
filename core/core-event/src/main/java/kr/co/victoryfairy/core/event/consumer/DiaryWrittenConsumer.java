@@ -45,13 +45,16 @@ public class DiaryWrittenConsumer {
             try {
                 var event = objectMapper.convertValue(message.getValue(), EventDomain.WriteEventDto.class);
 
-                if (event.type().equals(EventType.DIARY)) {
-                    eventService.processDiary(event);
-                } else {
-                    eventService.processBatch(event);
-                }
+                boolean success = switch (event.type()) {
+                    case DIARY -> eventService.processDiary(event);
+                    default -> eventService.processBatch(event); // void → 성공 처리 보장?
+                };
 
-                redisHandler.eventKnowEdge(key, group, message.getId().getValue());
+                if (success) {
+                    redisHandler.eventKnowEdge(key, group, message.getId().getValue());
+                } else {
+                    log.warn("Event processing skipped: {}", message.getId());
+                }
             } catch (Exception e) {
                 log.error("Error processing diary_written message: {}", message, e);
             }

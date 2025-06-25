@@ -33,6 +33,7 @@ public class MyPageServiceImpl implements MyPageService {
     private final DiaryRepository diaryRepository;
     private final DiaryFoodRepository diaryFoodRepository;
     private final PartnerRepository partnerRepository;
+    private final SeatUseHistoryRepository seatUseHistoryRepository;
 
     private final WithdrawalReasonRepository withdrawalRepository;
 
@@ -295,11 +296,10 @@ public class MyPageServiceImpl implements MyPageService {
 
         var diaryFoodEntities = diaryFoodRepository.findAllByDiaryEntityIdIn(diaryIds);
         var partnerEntities = partnerRepository.findAllByDiaryEntityIdIn(diaryIds);
+        var seatUserEntities = seatUseHistoryRepository.findAllByDiaryEntityIdIn(diaryIds);
 
         // 회원 정보 삭제
         memberInfoRepository.delete(memberInfoEntity);
-        // 일기 삭제
-        diaryRepository.deleteAll(diaryEntities);
         // 직관 음식 삭제
         diaryFoodRepository.deleteAll(diaryFoodEntities);
         // 직관 파트너 삭제
@@ -308,6 +308,10 @@ public class MyPageServiceImpl implements MyPageService {
         gameRecordRepository.deleteAll(recordEntities);
         // 멤버 삭제
         memberRepository.delete(memberEntity);
+        // 좌석 후기 삭제
+        seatUseHistoryRepository.deleteAll(seatUserEntities);
+        // 일기 삭제
+        diaryRepository.deleteAll(diaryEntities);
 
         var entity = WithdrawalReasonEntity.builder()
                 .reason(request.reason())

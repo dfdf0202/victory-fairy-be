@@ -142,8 +142,10 @@ public class RedisHandler {
     }
 
     public void eventKnowEdge(String key, String groupName, String recordId) {
-        redisTemplate.opsForStream().acknowledge(key, groupName, recordId);
-        redisTemplate.opsForStream().delete(key, recordId);
+        Long acked = redisTemplate.opsForStream().acknowledge(key, groupName, recordId);
+        Long deleted = redisTemplate.opsForStream().delete(key, recordId);
+
+        log.info(">> eventKnowEdge: ack={}, delete={}", acked, deleted);
     }
 
     public void pushHash(String key, String id, Object data) {

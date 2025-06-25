@@ -16,6 +16,8 @@ import kr.co.victoryfairy.support.utils.RequestUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -149,11 +151,17 @@ public class DiaryServiceImpl implements DiaryService {
             seatReviewRepository.saveAll(reviewList);
         }
 
-        // Event 발급
-        if (gameMatchEntity.getStatus().equals(MatchEnum.MatchStatus.END) || gameMatchEntity.getStatus().equals(MatchEnum.MatchStatus.CANCELED)) {
-            var writeEventDto = new DiaryDomain.WriteEventDto(diaryDto.gameMatchId(), id, diaryEntity.getId(), EventType.DIARY);
-            redisHandler.pushEvent("write_diary", writeEventDto);
-        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                if (gameMatchEntity.getStatus().equals(MatchEnum.MatchStatus.END) || gameMatchEntity.getStatus().equals(MatchEnum.MatchStatus.CANCELED)) {
+                    var writeEventDto = new DiaryDomain.WriteEventDto(
+                            diaryDto.gameMatchId(), id, diaryEntity.getId(), EventType.DIARY
+                    );
+                    redisHandler.pushEvent("write_diary", writeEventDto);
+                }
+            }
+        });
     }
 
     @Override

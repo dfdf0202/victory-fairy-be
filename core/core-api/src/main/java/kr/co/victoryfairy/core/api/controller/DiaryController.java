@@ -44,12 +44,10 @@ public class DiaryController {
     @SecurityRequirement(name = "accessToken")
     @Operation(summary = "일기 삭제")
     @DeleteMapping("/{id}")
-    public CustomResponse<MessageEnum> deleteDiary(@PathVariable Long diaryId){
-        diaryService.deleteDiary(diaryId);
+    public CustomResponse<MessageEnum> deleteDiary(@PathVariable Long id){
+        diaryService.deleteDiary(id);
         return CustomResponse.ok(MessageEnum.Common.SAVE);
     }
-
-
 
     @SecurityRequirement(name = "accessToken")
     @Operation(summary = "일기 목록")
