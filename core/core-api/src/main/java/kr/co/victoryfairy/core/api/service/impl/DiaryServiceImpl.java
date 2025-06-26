@@ -182,6 +182,8 @@ public class DiaryServiceImpl implements DiaryService {
         var diaryEntity = diaryRepository.findByMemberIdAndId(id, diaryId)
                 .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
+        var gameRecordEntity = gameRecordRepository.findByMemberAndDiaryEntityId(member, diaryId);
+
         diaryEntity.updateDiary(
                 teamEntity.getName(),
                 teamEntity,
@@ -283,6 +285,19 @@ public class DiaryServiceImpl implements DiaryService {
                 reviewList.add(seatReviewEntity);
             }
             seatReviewRepository.saveAll(reviewList);
+        }
+
+        // 경기 결과 수정 반영
+        if (gameRecordEntity != null && !gameRecordEntity.getTeamEntity().getId().equals(teamEntity.getId())) {
+            var bfMyTeamEntity = gameRecordEntity.getTeamEntity();
+            var bfResult = gameRecordEntity.getResultType();
+            gameRecordEntity.updateRecord(
+                    teamEntity,
+                    bfMyTeamEntity,
+                    bfResult.equals(MatchEnum.ResultType.WIN) ? MatchEnum.ResultType.LOSS :
+                            bfResult.equals(MatchEnum.ResultType.LOSS) ? MatchEnum.ResultType.WIN : bfResult
+            );
+            gameRecordRepository.save(gameRecordEntity);
         }
     }
 

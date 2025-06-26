@@ -69,4 +69,12 @@ public class GameRecordEntity extends BaseEntity {
     private MatchEnum.ResultType resultType;
 
     private String season;
+
+    public void updateRecord(TeamEntity teamEntity, TeamEntity opponentTeamEntity, MatchEnum.ResultType resultType) {
+        this.teamEntity = teamEntity;
+        this.teamName = teamEntity.getName();
+        this.opponentTeamEntity = opponentTeamEntity;
+        this.opponentTeamName = opponentTeamEntity.getName();
+        this.resultType = resultType;
+    }
 }
