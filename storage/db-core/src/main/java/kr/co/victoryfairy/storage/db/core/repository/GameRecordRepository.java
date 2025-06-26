@@ -11,5 +11,5 @@ import java.util.List;
 public interface GameRecordRepository extends JpaRepository<GameRecordEntity, Long> {
     List<GameRecordEntity> findByMemberAndSeason(MemberEntity member, String season);
     List<GameRecordEntity> findByMemberId(Long memberId);
-    GameRecordEntity findByMemberAndDiaryEntityId(MemberEntity member, DiaryEntity diary);
+    GameRecordEntity findByMemberAndDiaryEntityId(MemberEntity member, Long diaryId);
 }

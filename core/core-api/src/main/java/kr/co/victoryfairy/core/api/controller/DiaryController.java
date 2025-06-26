@@ -46,7 +46,7 @@ public class DiaryController {
     @DeleteMapping("/{id}")
     public CustomResponse<MessageEnum> deleteDiary(@PathVariable Long id){
         diaryService.deleteDiary(id);
-        return CustomResponse.ok(MessageEnum.Common.SAVE);
+        return CustomResponse.ok(MessageEnum.Common.DELETE);
     }
 
     @SecurityRequirement(name = "accessToken")

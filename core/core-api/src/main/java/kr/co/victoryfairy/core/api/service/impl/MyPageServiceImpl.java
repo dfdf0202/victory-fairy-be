@@ -125,15 +125,15 @@ public class MyPageServiceImpl implements MyPageService {
         MyPageDomain.ViewTypeDto stadiumViewDto = null;
         if (!stadiumRecord.isEmpty()) {
             var winCount = (short) stadiumRecord.stream()
-                    .filter(record -> record.getResultType() == MatchEnum.ResultType.WIN)
+                    .filter(record -> record.getStatus().equals(MatchEnum.MatchStatus.END) && record.getResultType().equals(MatchEnum.ResultType.WIN))
                     .count();
 
             var loseCount = (short) stadiumRecord.stream()
-                    .filter(record -> record.getResultType() == MatchEnum.ResultType.LOSS)
+                    .filter(record -> record.getStatus().equals(MatchEnum.MatchStatus.END) && record.getResultType().equals(MatchEnum.ResultType.LOSS))
                     .count();
 
             var drawCount = (short) stadiumRecord.stream()
-                    .filter(record -> record.getStatus() != MatchEnum.MatchStatus.CANCELED && record.getResultType() == MatchEnum.ResultType.DRAW)
+                    .filter(record -> record.getStatus() != MatchEnum.MatchStatus.CANCELED && record.getResultType().equals(MatchEnum.ResultType.DRAW))
                     .count();
 
             var cancelCount = (short) stadiumRecord.stream()
@@ -158,16 +158,16 @@ public class MyPageServiceImpl implements MyPageService {
 
         MyPageDomain.ViewTypeDto homeViewDto = null;
         var homeRecord = recordList.stream()
-                .filter(record -> record.getViewType() == DiaryEnum.ViewType.HOME)
+                .filter(record -> record.getViewType().equals(DiaryEnum.ViewType.HOME))
                 .toList();
 
         if (!homeRecord.isEmpty()) {
             var winCount = (short) homeRecord.stream()
-                    .filter(record -> record.getResultType() == MatchEnum.ResultType.WIN)
+                    .filter(record -> record.getStatus().equals(MatchEnum.MatchStatus.END) && record.getResultType().equals(MatchEnum.ResultType.WIN))
                     .count();
 
             var loseCount = (short) homeRecord.stream()
-                    .filter(record -> record.getResultType() == MatchEnum.ResultType.LOSS)
+                    .filter(record -> record.getStatus().equals(MatchEnum.MatchStatus.END) && record.getResultType().equals(MatchEnum.ResultType.LOSS))
                     .count();
 
             var drawCount = (short) homeRecord.stream()

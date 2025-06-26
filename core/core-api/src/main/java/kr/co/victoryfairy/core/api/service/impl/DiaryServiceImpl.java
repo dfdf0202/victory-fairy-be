@@ -187,6 +187,7 @@ public class DiaryServiceImpl implements DiaryService {
                 teamEntity,
                 request.viewType(),
                 request.mood(),
+                request.weather(),
                 request.content()
         );
         diaryRepository.save(diaryEntity);
@@ -298,22 +299,33 @@ public class DiaryServiceImpl implements DiaryService {
         var diaryEntity = diaryRepository.findByMemberIdAndId(id, diaryId)
                 .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
-        var gameRecordEntity = gameRecordRepository.findByMemberAndDiaryEntityId(member, diaryEntity);
+        var gameRecordEntity = gameRecordRepository.findByMemberAndDiaryEntityId(member, diaryId);
         gameRecordRepository.delete(gameRecordEntity);
 
         var bfFileRefEntity = fileRefRepository.findAllByRefTypeAndRefIdAndIsUseTrue(RefType.DIARY, diaryId);
-        fileRefRepository.deleteAll(bfFileRefEntity);
+        if (!bfFileRefEntity.isEmpty()) {
+            fileRefRepository.deleteAll(bfFileRefEntity);
+        }
 
         var bfFoodEntities = diaryFoodRepository.findByDiaryEntityId(diaryId);
-        diaryFoodRepository.deleteAll(bfFoodEntities);
+        if (!bfFoodEntities.isEmpty()) {
+            diaryFoodRepository.deleteAll(bfFoodEntities);
+        }
 
         var bfPartnerEntities = partnerRepository.findByDiaryEntityId(diaryId);
-        partnerRepository.deleteAll(bfPartnerEntities);
+        if (!bfPartnerEntities.isEmpty()) {
+            partnerRepository.deleteAll(bfPartnerEntities);
+        }
 
         var bfSeatUseHistoryEntity = seatUseHistoryRepository.findByDiaryEntityId(diaryId);
+        if (bfSeatUseHistoryEntity != null) {
+            seatUseHistoryRepository.delete(bfSeatUseHistoryEntity);
+        }
+
         var bfSeatReviewEntities = seatReviewRepository.findBySeatUseHistoryEntity(bfSeatUseHistoryEntity);
-        seatReviewRepository.deleteAll(bfSeatReviewEntities);
-        seatUseHistoryRepository.delete(bfSeatUseHistoryEntity);
+        if (!bfSeatReviewEntities.isEmpty()) {
+            seatReviewRepository.deleteAll(bfSeatReviewEntities);
+        }
 
         diaryRepository.delete(diaryEntity);
     }
@@ -460,7 +472,7 @@ public class DiaryServiceImpl implements DiaryService {
                         return null;
                     }
                     var fileEntity = entity.getFileEntity();
-                    return new DiaryDomain.ImageDto(entity.getId(), fileEntity.getPath(), fileEntity.getSaveName(), fileEntity.getExt());
+                    return new DiaryDomain.ImageDto(fileEntity.getId(), fileEntity.getPath(), fileEntity.getSaveName(), fileEntity.getExt());
                 })
                 .toList();
 

@@ -59,11 +59,14 @@ public class DiaryEntity extends BaseEntity{
         this.isRated = true;
     }
 
-    public void updateDiary(String teamName, TeamEntity teamEntity, DiaryEnum.ViewType viewType, DiaryEnum.MoodType moodType, String content) {
+    public void updateDiary(String teamName, TeamEntity teamEntity,
+                            DiaryEnum.ViewType viewType, DiaryEnum.MoodType moodType,
+                            DiaryEnum.WeatherType weather, String content) {
         this.teamName = teamName;
         this.teamEntity = teamEntity;
         this.viewType = viewType;
         this.moodType = moodType;
+        this.weatherType = weather;
         this.content = content;
         update();
     }
