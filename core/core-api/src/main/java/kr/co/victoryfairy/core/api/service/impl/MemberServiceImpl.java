@@ -121,7 +121,10 @@ public class MemberServiceImpl implements MemberService {
         var id = RequestUtils.getId();
         if (id == null) throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
 
-        var memberInfoEntity = memberInfoRepository.findById(id)
+        var memberEntity = memberRepository.findById(id)
+                .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        var memberInfoEntity = memberInfoRepository.findByMemberEntity(memberEntity)
                 .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
         var teamEntity = teamRepository.findById(request.teamId())
@@ -210,7 +213,10 @@ public class MemberServiceImpl implements MemberService {
             throw new CustomException(MessageEnum.CheckNick.POSSESSION);
         }
 
-        var memberInfoEntity = memberInfoRepository.findById(id)
+        var memberEntity = memberRepository.findById(id)
+                .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        var memberInfoEntity = memberInfoRepository.findByMemberEntity(memberEntity)
                 .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
         memberInfoEntity = memberInfoEntity.toBuilder()

@@ -43,7 +43,7 @@ public class MatchServiceImpl implements MatchService {
 
         var memberEntity = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
-        var memberInfoEntity = memberInfoRepository.findById(memberId)
+        var memberInfoEntity = memberInfoRepository.findByMemberEntity(memberEntity)
                 .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
         var teamEntity = memberInfoEntity.getTeamEntity();
 
@@ -479,7 +479,10 @@ public class MatchServiceImpl implements MatchService {
         var id = RequestUtils.getId();
         if (id == null) throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
 
-        var memberInfoEntity = memberInfoRepository.findById(id)
+        var memberEntity = memberRepository.findById(id)
+                .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+        var memberInfoEntity = memberInfoRepository.findByMemberEntity(memberEntity)
                 .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
         if (memberInfoEntity.getTeamEntity() == null) {
