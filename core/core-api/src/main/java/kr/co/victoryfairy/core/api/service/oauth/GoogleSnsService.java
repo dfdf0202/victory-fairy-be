@@ -45,7 +45,7 @@ public class GoogleSnsService implements OauthService {
     @Override
     public MemberDomain.MemberSns parseSnsInfo(MemberDomain.MemberLoginRequest request) {
         log.info("================googleCallback=============");
-        log.info("code: {} , state: {}", request.code());
+        log.info("code: {}", request.code());
 
         var url = "https://oauth2.googleapis.com/token";
 

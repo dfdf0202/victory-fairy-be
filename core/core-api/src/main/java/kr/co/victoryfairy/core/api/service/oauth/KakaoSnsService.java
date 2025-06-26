@@ -45,7 +45,7 @@ public class KakaoSnsService implements OauthService {
     @Override
     public MemberDomain.MemberSns parseSnsInfo(MemberDomain.MemberLoginRequest request) {
         log.info("================kakaoCallback=============");
-        log.info("code: {} , state: {}", request.code());
+        log.info("code: {}}", request.code());
         log.info("orgCallbackUrl: {} , state: {}", kakaoCallbackUrl);
 
         var url = "https://kauth.kakao.com/oauth/token";
