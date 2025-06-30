@@ -47,7 +47,7 @@ public class DiaryServiceImpl implements DiaryService {
     private final RedisHandler redisHandler;
 
     @Transactional
-    public void writeDiary(DiaryDomain.WriteRequest diaryDto){
+    public DiaryDomain.WriteResponse writeDiary(DiaryDomain.WriteRequest diaryDto){
         // 로그인한 회원 조회
         var id = RequestUtils.getId();
         MemberEntity member = memberRepository.findById(Objects.requireNonNull(id))
@@ -161,6 +161,8 @@ public class DiaryServiceImpl implements DiaryService {
                 }
             }
         });
+
+        return new DiaryDomain.WriteResponse(diaryEntity.getId());
     }
 
     @Override

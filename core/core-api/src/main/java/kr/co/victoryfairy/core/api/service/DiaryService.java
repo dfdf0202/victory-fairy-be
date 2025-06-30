@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface DiaryService {
 
-    void writeDiary(DiaryDomain.WriteRequest diaryDto);
+    DiaryDomain.WriteResponse writeDiary(DiaryDomain.WriteRequest diaryDto);
 
     void updateDiary(Long diaryId, DiaryDomain.UpdateRequest request);
 

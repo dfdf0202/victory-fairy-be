@@ -11,6 +11,12 @@ import java.util.List;
 
 public interface DiaryDomain {
 
+    @Schema(name = "Diary.WriteResponse")
+    record WriteResponse(
+            @Schema(description = "일기 식별자")
+            Long id
+    ) {}
+
     @Schema(name = "Diary.WriteRequest")
     record WriteRequest(
             @Schema(description = "응원팀 id", requiredMode = Schema.RequiredMode.REQUIRED)

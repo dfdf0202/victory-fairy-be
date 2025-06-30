@@ -28,9 +28,9 @@ public class DiaryController {
     @SecurityRequirement(name = "accessToken")
     @Operation(summary = "일기 작성")
     @PostMapping()
-    public CustomResponse<MessageEnum> writeDiary(@RequestBody DiaryDomain.WriteRequest request){
-        diaryService.writeDiary(request);
-        return CustomResponse.ok(MessageEnum.Common.SAVE);
+    public CustomResponse<DiaryDomain.WriteResponse> writeDiary(@RequestBody DiaryDomain.WriteRequest request){
+        var response = diaryService.writeDiary(request);
+        return CustomResponse.ok(response);
     }
 
     @SecurityRequirement(name = "accessToken")
