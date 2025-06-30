@@ -32,8 +32,8 @@ public class MyPageController {
     @SecurityRequirement(name = "accessToken")
     @Operation(summary = "승요 레벨")
     @GetMapping("/victory-power")
-    public CustomResponse<MyPageDomain.VictoryPowerResponse> findVictoryPower() {
-        var response = myPageService.findVictoryPower();
+    public CustomResponse<MyPageDomain.VictoryPowerResponse> findVictoryPower(@RequestParam(required = false) String season) {
+        var response = myPageService.findVictoryPower(season);
         return CustomResponse.ok(response);
     }
 

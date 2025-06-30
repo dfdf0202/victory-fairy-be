@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -23,9 +24,11 @@ public class CommonServiceImpl implements CommonService {
     public List<CommonDomain.TeamListResponse> findAll() {
         List<TeamEntity> team = teamRepository.findAll();
         return team.stream()
+                .sorted(Comparator.comparing(TeamEntity::getOrderNo))
                 .map(entity -> {
                     return new CommonDomain.TeamListResponse(entity.getId(), entity.getName(), entity.getLabel());
-                }).toList();
+                })
+                .toList();
     }
 
     @Override

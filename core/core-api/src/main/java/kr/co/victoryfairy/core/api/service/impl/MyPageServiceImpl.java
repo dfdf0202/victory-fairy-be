@@ -34,6 +34,7 @@ public class MyPageServiceImpl implements MyPageService {
     private final DiaryFoodRepository diaryFoodRepository;
     private final PartnerRepository partnerRepository;
     private final SeatUseHistoryRepository seatUseHistoryRepository;
+    private final SeatReviewRepository seatReviewRepository;
 
     private final WithdrawalReasonRepository withdrawalRepository;
 
@@ -58,14 +59,14 @@ public class MyPageServiceImpl implements MyPageService {
     }
 
     @Override
-    public MyPageDomain.VictoryPowerResponse findVictoryPower() {
+    public MyPageDomain.VictoryPowerResponse findVictoryPower(String season) {
         var id = RequestUtils.getId();
         if (id == null) throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
 
         var memberEntity = memberRepository.findById(id)
                 .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
-        var year = String.valueOf(LocalDate.now().getYear());
+        var year = StringUtils.hasText(season) ? season : String.valueOf(LocalDate.now().getYear());
 
         var recordList = gameRecordRepository.findByMemberAndSeason(memberEntity, year);
 
@@ -297,6 +298,7 @@ public class MyPageServiceImpl implements MyPageService {
         var diaryFoodEntities = diaryFoodRepository.findAllByDiaryEntityIdIn(diaryIds);
         var partnerEntities = partnerRepository.findAllByDiaryEntityIdIn(diaryIds);
         var seatUserEntities = seatUseHistoryRepository.findAllByDiaryEntityIdIn(diaryIds);
+        var seatReviewEntities = seatReviewRepository.findAllBySeatUseHistoryEntityIdIn(seatUserEntities.stream().map(entity -> entity.getId()).toList());
 
         // 회원 정보 삭제
         memberInfoRepository.delete(memberInfoEntity);
@@ -309,6 +311,8 @@ public class MyPageServiceImpl implements MyPageService {
         // 멤버 삭제
         memberRepository.delete(memberEntity);
         // 좌석 후기 삭제
+        seatReviewRepository.deleteAll(seatReviewEntities);
+        // 좌석 이용 내역 삭제
         seatUseHistoryRepository.deleteAll(seatUserEntities);
         // 일기 삭제
         diaryRepository.deleteAll(diaryEntities);

@@ -25,6 +25,9 @@ public class TeamEntity extends BaseEntity {
     @Column
     private String label;
 
+    @Column
+    private Short orderNo;
+
     public TeamEntity() {
     }
 
@@ -49,4 +52,6 @@ public class TeamEntity extends BaseEntity {
     public String getLabel() {
         return label;
     }
+
+    public Short getOrderNo() { return orderNo; }
 }

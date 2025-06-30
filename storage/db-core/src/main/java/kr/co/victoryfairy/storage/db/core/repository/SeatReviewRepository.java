@@ -11,4 +11,5 @@ import java.util.List;
 public interface SeatReviewRepository extends JpaRepository<SeatReviewEntity,Long> {
 
     List<SeatReviewEntity> findBySeatUseHistoryEntity(SeatUseHistoryEntity id);
+    List<SeatReviewEntity> findAllBySeatUseHistoryEntityIdIn(List<Long> ids);
 }

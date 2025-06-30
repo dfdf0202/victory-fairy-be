@@ -14,7 +14,7 @@ public interface MyPageService {
      * 마이페이지 - 승요 파워 조회
      * @return
      */
-    MyPageDomain.VictoryPowerResponse findVictoryPower();
+    MyPageDomain.VictoryPowerResponse findVictoryPower(String season);
 
     /**
      * 마이페이지 - 관람 분석
