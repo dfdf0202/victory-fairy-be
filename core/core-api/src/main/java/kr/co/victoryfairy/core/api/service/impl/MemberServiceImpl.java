@@ -225,16 +225,17 @@ public class MemberServiceImpl implements MemberService {
 
         memberInfoRepository.save(memberInfoEntity);
 
+        // 기존 등록된 프로필 사진 isUse false 처리
+        var fileRefEntity = fileRefRepository.findByRefTypeAndRefIdAndIsUseTrue(RefType.PROFILE, id).orElse(null);
+        if (fileRefEntity != null) {
+            fileRefEntity.delete();
+        }
+
         // TODO file id 로 이미지 path 저장 처리
         if (request.fileId() != null) {
             var fileEntity = fileRepository.findById(request.fileId())
                     .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
-            // 기존 등록된 프로필 사진 isUse false 처리
-            var fileRefEntity = fileRefRepository.findByRefTypeAndRefIdAndIsUseTrue(RefType.PROFILE, id).orElse(null);
-            if (fileRefEntity != null) {
-                fileRefEntity.delete();
-            }
 
             var newFileRefEntity = FileRefEntity.builder()
                     .fileEntity(fileEntity)

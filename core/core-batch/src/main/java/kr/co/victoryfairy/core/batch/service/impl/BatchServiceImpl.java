@@ -330,7 +330,7 @@ public class BatchServiceImpl implements BatchService {
         });
 
         if (pendingSummary.getTotalPendingMessages() > 0) {
-            List<PendingMessage> pendingMessages = redisOperator.getPendingDetails(streamKey, groupName, 10);
+            List<PendingMessage> pendingMessages = redisOperator.getPendingDetailsPaged(streamKey, groupName, 10);
 
             pendingMessages.stream()
                     .filter(Objects::nonNull)

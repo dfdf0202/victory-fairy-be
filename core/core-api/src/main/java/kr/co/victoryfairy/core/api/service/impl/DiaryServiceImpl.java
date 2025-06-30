@@ -128,13 +128,12 @@ public class DiaryServiceImpl implements DiaryService {
         DiaryDomain.SeatUseHistoryDto diaryDtoSeat = diaryDto.seat();
         if (diaryDtoSeat != null) {
             // 좌석 조회
-            /*SeatEntity seatEntity = seatRepository.findById(diaryDtoSeat.id())
-                    .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));*/
+            SeatEntity seatEntity = seatRepository.findById(diaryDtoSeat.id()).orElse(null);
 
             // 좌석 이용 내역 저장
             SeatUseHistoryEntity seatUseHistoryEntity = SeatUseHistoryEntity.builder()
                     .diaryEntity(diaryEntity)
-                    //.seatEntity(seatEntity)
+                    .seatEntity(seatEntity)
                     .seatName(diaryDtoSeat.name())
                     .build();
             seatUseHistoryRepository.save(seatUseHistoryEntity);
@@ -194,10 +193,11 @@ public class DiaryServiceImpl implements DiaryService {
         );
         diaryRepository.save(diaryEntity);
 
+        var bfFileRefEntity = fileRefRepository.findAllByRefTypeAndRefIdAndIsUseTrue(RefType.DIARY, diaryId);
+        fileRefRepository.deleteAll(bfFileRefEntity);
+
         if (!request.fileId().isEmpty()) {
             // 기존 이미지 삭제 처리
-            var bfFileRefEntity = fileRefRepository.findAllByRefTypeAndRefIdAndIsUseTrue(RefType.DIARY, diaryId);
-            fileRefRepository.deleteAll(bfFileRefEntity);
 
             var fileEntities = fileRepository.findAllById(request.fileId());
             var fileRefEntities = fileEntities.stream()
@@ -268,9 +268,13 @@ public class DiaryServiceImpl implements DiaryService {
             }
             seatUseHistoryRepository.delete(bfSeatUseHistoryEntity);
 
+            // 좌석 조회
+            SeatEntity seatEntity = seatRepository.findById(diaryDtoSeat.id()).orElse(null);
+
             // 좌석 이용 내역 저장
             SeatUseHistoryEntity seatUseHistoryEntity = SeatUseHistoryEntity.builder()
                     .diaryEntity(diaryEntity)
+                    .seatEntity(seatEntity)
                     .seatName(diaryDtoSeat.name())
                     .build();
             seatUseHistoryRepository.save(seatUseHistoryEntity);
@@ -505,7 +509,7 @@ public class DiaryServiceImpl implements DiaryService {
                     .toList();
 
             seatUseHistoryDto = new DiaryDomain.SeatUseHistoryDto(
-                    //seatUseHistoryEntity.getId(),
+                    seatUseHistoryDto != null ? seatUseHistoryEntity.getId() : null,
                     seatUseHistoryEntity.getSeatName(),
                     seatReviewList
             );
