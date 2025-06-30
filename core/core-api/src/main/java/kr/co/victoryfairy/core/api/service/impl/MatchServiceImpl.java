@@ -55,7 +55,9 @@ public class MatchServiceImpl implements MatchService {
         var matchRedis = redisHandler.getHashMap(formatDate + "_match_list");
 
         if (matchRedis.isEmpty()) {
-            var matchEntities = gameMatchCustomRepository.findByMatchAt(date);
+            var matchEntities = gameMatchCustomRepository.findByMatchAt(date).stream()
+                    .sorted(Comparator.comparing(entity -> entity.getMatchAt()))
+                    .toList();
 
             if (matchEntities.isEmpty()) {
                 return new MatchDomain.MatchListResponse(date, matchList);
@@ -63,6 +65,7 @@ public class MatchServiceImpl implements MatchService {
 
             matchList = matchEntities.stream()
                     .map(entity -> {
+
                         var matchAt = entity.getMatchAt();
                         var awayTeamEntity = teamRepository.findById(entity.getAwayTeamEntity().getId()).orElse(null);
                         var homeTeamEntity = teamRepository.findById(entity.getHomeTeamEntity().getId()).orElse(null);

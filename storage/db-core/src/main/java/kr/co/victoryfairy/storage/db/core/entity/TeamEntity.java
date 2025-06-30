@@ -49,6 +49,10 @@ public class TeamEntity extends BaseEntity {
         return kboNm;
     }
 
+    public String getSponsorNm() {
+        return sponsorNm;
+    }
+
     public String getLabel() {
         return label;
     }

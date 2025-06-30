@@ -4,6 +4,9 @@ import io.dodn.springboot.core.enums.DiaryEnum;
 import io.dodn.springboot.core.enums.MemberEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 public interface MyPageDomain {
 
     @Schema(name = "Member.MemberInfoForMyPage")
@@ -77,5 +80,10 @@ public interface MyPageDomain {
 
     record DeleteAccountRequest(
             String reason
+    ) {}
+
+    record VisitInfoDto(
+            int count,
+            LocalDateTime lastVisited
     ) {}
 }

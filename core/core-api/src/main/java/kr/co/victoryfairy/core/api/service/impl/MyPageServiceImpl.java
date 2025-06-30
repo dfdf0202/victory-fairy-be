@@ -197,7 +197,7 @@ public class MyPageServiceImpl implements MyPageService {
 
         var winCountByTeam = new HashMap<String, Integer>();
         var loseCountByTeam = new HashMap<String, Integer>();
-        var stadiumVisitCount = new HashMap<String, Integer>();
+        Map<String, MyPageDomain.VisitInfoDto> stadiumVisitCount = new HashMap<>();
 
         short homeGameCount = 0;
         short homeGameWinCount = 0;
@@ -207,46 +207,47 @@ public class MyPageServiceImpl implements MyPageService {
         short currentStreak = 0;
         short maxStreak = 0;
 
-        for (var record : recordList) {
+        // 직관 데이터
+        for (var record : stadiumRecord) {
             var stadiumEntity = record.getStadiumEntity();
             var result = record.getResultType();
-            var viewType = record.getViewType(); // HOME / AWAY
+            var matchEntity = record.getGameMatchEntity();
 
             // 최대 방문 구장 처리
-            stadiumVisitCount.merge(stadiumEntity.getFullName(), 1, Integer::sum);
+            stadiumVisitCount.merge(stadiumEntity.getFullName(), new MyPageDomain.VisitInfoDto(1, matchEntity.getMatchAt()), (oldVal, newVal) -> {
+                return new MyPageDomain.VisitInfoDto(
+                        oldVal.count() + 1,
+                        matchEntity.getMatchAt().isAfter(oldVal.lastVisited()) ? matchEntity.getMatchAt() : oldVal.lastVisited()
+                );
+            });
 
-            // 홈/원정 직관 승률
-            if (viewType == DiaryEnum.ViewType.STADIUM) {
-                var matchEntity = record.getGameMatchEntity();
-                System.out.println("matchId >>>>>>>>>>>>>>> " + matchEntity.getId());
-                var myTeam = record.getTeamEntity();
+            var myTeam = record.getTeamEntity();
 
-                // 원정, 홈 여부
-                var isHome = matchEntity.getHomeTeamEntity().getId().equals(myTeam.getId());
+            // 원정, 홈 여부
+            var isHome = matchEntity.getHomeTeamEntity().getId().equals(myTeam.getId());
 
-                if (isHome) {
-                    homeGameCount++;
-                    if (result == MatchEnum.ResultType.WIN) {
-                        homeGameWinCount++;
-                    }
-                } else {
-                    stadiumGameCount++;
-                    if (result == MatchEnum.ResultType.WIN) {
-                        stadiumGameWinCount++;
-                    }
-                }
-
-                // 최대 승리 / 패배 팀 처리
+            if (isHome) {
+                homeGameCount++;
                 if (result == MatchEnum.ResultType.WIN) {
-                    winCountByTeam.merge(record.getOpponentTeamName(), 1, Integer::sum);
-                    currentStreak++;
-                    maxStreak = (short) Math.max(maxStreak, currentStreak);
-                } else if (result == MatchEnum.ResultType.LOSS) {
-                    loseCountByTeam.merge(record.getOpponentTeamName(), 1, Integer::sum);
-                    currentStreak = 0; // 연승 끊김
-                } else {
-                    currentStreak = 0; // 연승 끊김
+                    homeGameWinCount++;
                 }
+            } else {
+                stadiumGameCount++;
+                if (result == MatchEnum.ResultType.WIN) {
+                    stadiumGameWinCount++;
+                }
+            }
+
+            // 최대 승리 / 패배 팀 처리
+            if (result == MatchEnum.ResultType.WIN) {
+                winCountByTeam.merge(record.getOpponentTeamName(), 1, Integer::sum);
+                currentStreak++;
+                maxStreak = (short) Math.max(maxStreak, currentStreak);
+            } else if (result == MatchEnum.ResultType.LOSS) {
+                loseCountByTeam.merge(record.getOpponentTeamName(), 1, Integer::sum);
+                currentStreak = 0; // 연승 끊김
+            } else {
+                currentStreak = 0; // 연승 끊김
             }
         }
 
@@ -263,10 +264,12 @@ public class MyPageServiceImpl implements MyPageService {
                 .orElse("-");
 
         // 최대 방문 구장
+        // 방문 수가 같으면 마지막 방문일이 늦은 게 우선
         var maxVisitedStadium = stadiumVisitCount.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
+                .max(Comparator.comparingInt((Map.Entry<String, MyPageDomain.VisitInfoDto> e) ->
+                        e.getValue().count()).thenComparing(e -> e.getValue().lastVisited()))
                 .map(Map.Entry::getKey)
-                .orElse("-");
+                .orElse(null);
 
         // 홈 승률
         short homeWinRate = (short) (homeGameCount == 0 ? 0 : Math.round(((double) homeGameWinCount / homeGameCount) * 100));

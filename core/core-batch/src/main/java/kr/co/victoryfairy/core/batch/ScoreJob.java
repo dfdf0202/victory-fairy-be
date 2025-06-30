@@ -27,4 +27,9 @@ public class ScoreJob {
     public void checkEvent() {
         batchService.checkEvent();
     }
+
+    @Scheduled(cron = "${batch.check.match}", zone = "Asia/Seoul")
+    public void checkMatchList() {
+        batchService.checkMatchList();
+    }
 }

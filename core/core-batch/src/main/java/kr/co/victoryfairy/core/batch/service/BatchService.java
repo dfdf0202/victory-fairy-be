@@ -7,4 +7,6 @@ public interface BatchService {
     void batchMatchInfo();
 
     void checkEvent();
+
+    void checkMatchList();
 }
