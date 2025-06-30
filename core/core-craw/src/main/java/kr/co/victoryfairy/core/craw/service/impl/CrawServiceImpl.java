@@ -30,14 +30,17 @@ public class CrawServiceImpl implements CrawService {
     private final HitterRecordRepository hitterRecordRepository;
     private final PitcherRecordRepository pitcherRecordRepository;
 
+    private final GameMatchCustomRepository gameMatchCustomRepository;
+
     public CrawServiceImpl(TeamRepository teamRepository, StadiumRepository stadiumRepository,
                            GameMatchRepository gameMatchRepository, HitterRecordRepository hitterRecordRepository,
-                           PitcherRecordRepository pitcherRecordRepository) {
+                           PitcherRecordRepository pitcherRecordRepository, GameMatchCustomRepository gameMatchCustomRepository) {
         this.teamRepository = teamRepository;
         this.stadiumRepository = stadiumRepository;
         this.gameMatchRepository = gameMatchRepository;
         this.hitterRecordRepository = hitterRecordRepository;
         this.pitcherRecordRepository = pitcherRecordRepository;
+        this.gameMatchCustomRepository = gameMatchCustomRepository;
     }
 
     @Override
@@ -346,6 +349,204 @@ public class CrawServiceImpl implements CrawService {
 
         hitterRecordRepository.saveAll(hitterEntities);
         pitcherRecordRepository.saveAll(pitcherEntities);
+    }
+
+    @Override
+    public void crawMatchListByMonth(String sYear, String sMonth) {
+        try (Playwright playwright = Playwright.create()) {
+            Browser browser = playwright.chromium().launch();
+            Page page = browser.newPage();
+            page.navigate("https://www.koreabaseball.com/Schedule/Schedule.aspx");
+
+            // 연도 설정
+            page.selectOption("#ddlYear", sYear);
+
+            var teamEntities = teamRepository.findAll().stream()
+                    .collect(Collectors.toMap(TeamEntity::getKboNm, entity -> entity));
+
+            var stadiumEntities = stadiumRepository.findAll().stream()
+                    .collect(Collectors.toMap(StadiumEntity::getRegion, entity -> entity));
+
+            List<GameMatchEntity> gameEntities = new ArrayList<>();
+
+            var beforeMatches = gameMatchCustomRepository.findByYearAndMonth(sYear, sMonth);
+
+            gameMatchRepository.deleteAll(beforeMatches);
+
+            String monthStr = String.format("%02d", Integer.parseInt(sMonth));
+            page.selectOption("#ddlMonth", monthStr);
+
+            for (MatchEnum.MatchType matchType : MatchEnum.MatchType.values()) {
+
+                if (MatchEnum.MatchType.TIEBREAKER.equals(matchType)) continue;
+
+                page.selectOption("#ddlSeries", matchType.getValue());
+
+                // 테이블 로딩 대기
+                page.evaluate("getTableGridList();");
+                page.waitForSelector("#tblScheduleList tbody tr");
+
+                List<ElementHandle> rows = page.querySelectorAll("#tblScheduleList tbody tr");
+
+                if (rows.isEmpty()) break;
+
+                String lastValidDate = "";
+                for (ElementHandle row : rows) {
+
+                    String rowText = row.innerText().trim();
+                    if (rowText.contains("데이터가 없습니다")) {
+                        continue;
+                    }
+
+                    String date = "";
+                    ElementHandle dateCell = row.querySelector("td.day");
+
+                    if (dateCell != null && !dateCell.innerText().isBlank()) {
+                        date = dateCell.innerText();
+                        lastValidDate = date; // 날짜 업데이트
+                    } else {
+                        date = lastValidDate; // 이전 날짜 사용
+                    }
+
+                    String time = "";
+                    ElementHandle timeElement = row.querySelector("td.time b");
+                    if (timeElement != null) {
+                        time = timeElement.innerText();
+                    }
+
+                    // LocalDateTime 변환
+                    LocalDateTime matchDateTime = parseDateTime(sYear, date, time);
+
+                    ElementHandle playElement = row.querySelector("td.play");
+                    if (playElement == null) continue;
+
+                    List<ElementHandle> teamSpans = playElement.querySelectorAll("span");
+
+                    String away = "";
+                    String home = "";
+                    Short awayScore = null;
+                    Short homeScore = null;
+                    String stadiumShortName = "";
+                    String stadiumFullName = "";
+                    String reason = "";
+
+                    List<ElementHandle> tds = row.querySelectorAll("td");
+
+                    int stadiumIndex = (tds.size() == 9) ? 7 : 6;
+                    //int stadiumIndex = 8;
+                    int reasonIndex = stadiumIndex + 1;
+
+                    if (teamSpans.size() > 3) {
+                        away = safeInnerText(teamSpans, 0);
+                        awayScore = Short.parseShort(safeInnerText(teamSpans, 1));
+                        homeScore = Short.parseShort(safeInnerText(teamSpans, 3));
+                        home = safeInnerText(teamSpans, 4);
+                    } else {
+                        away = safeInnerText(teamSpans, 0);
+                        home = safeInnerText(teamSpans, 2);
+                    }
+
+                    stadiumShortName = safeInnerText(tds, stadiumIndex);
+                    //stadiumFullName = parseStadium(stadiumShortName);
+
+                    if (stadiumShortName.equals("대전")) {
+                        if (sYear.equals(LocalDateTime.now().getYear())) {
+                            stadiumShortName = "대전(신)";
+                        }else {
+                            stadiumShortName = "대전(구)";
+                        }
+                    }
+
+                    var stadiumEntity = stadiumEntities.get(stadiumShortName);
+
+                    reason = safeInnerText(tds, reasonIndex);
+
+                    ElementHandle replayElement = row.querySelector("td.relay");
+
+                    var matchStatus = MatchEnum.MatchStatus.READY;
+
+                    ElementHandle relayTd = row.querySelector("td.relay a");
+                    var matchId = "";
+                    var kboAway = TeamEnum.KboTeamNm.fromDesc(away);
+                    var kboHome = TeamEnum.KboTeamNm.fromDesc(home);
+
+                    var awayEntity = teamEntities.get(kboAway.name());
+                    var homeEntity = teamEntities.get(kboHome.name());
+
+                    if (relayTd == null) {
+                        //matchStatus = matchDateTime.isAfter(LocalDateTime.now()) ? MatchEnum.MatchStatus.READY : MatchEnum.MatchStatus.CANCELED;
+                        matchStatus = reason.equals("-") ? MatchEnum.MatchStatus.READY : MatchEnum.MatchStatus.CANCELED;
+                        String formattedDate = matchDateTime.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+                        matchId = formattedDate + kboAway + kboHome + 0;
+                    } else {
+                        String replayRowText = relayTd.innerText().trim();
+                        matchStatus = replayRowText.equals("리뷰") ? MatchEnum.MatchStatus.END : MatchEnum.MatchStatus.READY;
+
+                        ElementHandle reviewLink = row.querySelector("td.relay a#btnReview");
+                        ElementHandle previewLink = row.querySelector("td.relay a#btnPreView");
+
+                        String href = "";
+
+                        if (reviewLink != null) {
+                            href = reviewLink.getAttribute("href");
+                        } else if (previewLink != null) {
+                            href = previewLink.getAttribute("href");
+                        }
+
+                        if (href != null && href.contains("gameId=")) {
+                            String[] parts = href.split("gameId=");
+                            if (parts.length > 1) {
+                                String[] gameIdSplit = parts[1].split("&");
+                                matchId = gameIdSplit[0];
+                            }
+                        }
+                    }
+
+                    MatchEnum.SeriesType seriesType = switch (matchType) {
+                        case EXHIBITION -> MatchEnum.SeriesType.EXHIBITION;
+                        case REGULAR -> MatchEnum.SeriesType.REGULAR;
+                        case TIEBREAKER -> MatchEnum.SeriesType.TIEBREAKER;
+                        case POST -> null;
+                    };
+
+                    if (!StringUtils.hasText(matchId)) {
+                        continue;
+                    }
+
+                    GameMatchEntity gameMatch = new GameMatchEntity(
+                            matchId
+                            ,matchType
+                            ,seriesType
+                            ,sYear
+                            ,matchDateTime
+                            ,awayEntity
+                            ,away
+                            ,awayScore
+                            ,homeEntity
+                            ,home
+                            ,homeScore
+                            ,stadiumEntity
+                            ,matchStatus
+                            ,reason
+                            ,false
+                    );
+
+                    gameEntities.add(gameMatch);
+
+                    // 객체 바로 정리 (GC 도움)
+                    playElement.dispose();
+                    replayElement.dispose();
+                    teamSpans.forEach(ElementHandle::dispose);
+                    tds.forEach(ElementHandle::dispose);
+                }
+
+                rows.forEach(ElementHandle::dispose);
+            }
+
+            gameMatchRepository.saveAll(gameEntities);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private LocalDateTime parseDateTime(String sYear, String dateStr, String timeStr) {

@@ -13,4 +13,6 @@ public interface GameMatchCustomRepository {
     Optional<GameMatchEntity> findByTeamId(Long teamId, LocalDate matchAt);
 
     List<GameMatchEntity> findByTeamIdIn(Long teamId, LocalDate matchAt);
+
+    List<GameMatchEntity> findByYearAndMonth(String year, String month);
 }

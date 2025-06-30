@@ -106,6 +106,30 @@ public class GameMatchCustomRepositoryImpl extends QuerydslRepositorySupport imp
                 .fetch();
     }
 
+    @Override
+    public List<GameMatchEntity> findByYearAndMonth(String year, String month) {
+        return jpaQueryFactory
+                .select(Projections.fields(GameMatchEntity.class
+                        , gameMatchEntity.id
+                        , gameMatchEntity.type
+                        , gameMatchEntity.series
+                        , gameMatchEntity.season
+                        , gameMatchEntity.matchAt
+                        , gameMatchEntity.awayTeamEntity
+                        , gameMatchEntity.awayNm
+                        , gameMatchEntity.awayScore
+                        , gameMatchEntity.homeTeamEntity
+                        , gameMatchEntity.homeNm
+                        , gameMatchEntity.homeScore
+                        , gameMatchEntity.status
+                        , gameMatchEntity.reason
+                        , gameMatchEntity.isMatchInfoCraw
+                ))
+                .from(gameMatchEntity)
+                .where(this.eqMatchAt(year, month))
+                .fetch();
+    }
+
     private BooleanExpression eqMatchAt(LocalDate matchAt) {
         if (matchAt == null) {
             return null;
@@ -121,5 +145,14 @@ public class GameMatchCustomRepositoryImpl extends QuerydslRepositorySupport imp
 
     private BooleanExpression eqTeamId(Long teamId) {
         return teamId == null ? null : gameMatchEntity.awayTeamEntity.id.eq(teamId).or(gameMatchEntity.homeTeamEntity.id.eq(teamId));
+    }
+
+    private BooleanExpression eqMatchAt(String year, String month) {
+        if (year == null || month == null) { return null; }
+
+        StringTemplate dbDate = Expressions.stringTemplate(
+                "DATE_FORMAT({0}, '%Y-%m')", gameMatchEntity.matchAt);
+
+        return dbDate.eq(year + "-" + month);
     }
 }

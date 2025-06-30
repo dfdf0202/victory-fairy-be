@@ -21,6 +21,12 @@ public class CrawController {
         return CustomResponse.ok(MessageEnum.Common.REQUEST);
     }
 
+    @GetMapping("/match-month-list")
+    public CustomResponse<MessageEnum> getMatchMonthList(@RequestParam(name = "sYear") String sYear, @RequestParam(name = "sMonth") String sMonth) {
+        crawService.crawMatchListByMonth(sYear, sMonth);
+        return CustomResponse.ok(MessageEnum.Common.REQUEST);
+    }
+
     @GetMapping("/match-detail")
     public CustomResponse<MessageEnum> getMatchDetail(@RequestParam(name = "sYear") String sYear) {
         crawService.crawMatchDetail(sYear);

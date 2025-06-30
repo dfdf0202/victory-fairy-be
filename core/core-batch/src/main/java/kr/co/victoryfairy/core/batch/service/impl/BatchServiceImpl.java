@@ -91,111 +91,116 @@ public class BatchServiceImpl implements BatchService {
 
             if (gameElements.isEmpty()) return;
 
-            for (ElementHandle game : gameElements) {
-                String classAttr = game.getAttribute("class");
-                String statusClass = classAttr.replace("list", "").trim();
+            String now = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+            if (now.equals(formattedDate)) {
+                for (ElementHandle game : gameElements) {
+                    String classAttr = game.getAttribute("class");
+                    String statusClass = classAttr.replace("list", "").trim();
 
-                // 경기 예정인 경우 제외
-                if (!StringUtils.hasText(statusClass)) continue;
+                    // 경기 예정인 경우 제외
+                    //if (!StringUtils.hasText(statusClass)) continue;
 
+                    // 상태, 취소 사유 처리
+                    var matchStatus = MatchEnum.MatchStatus.READY;
+                    var reason = "-";
+                    if ("end".equals(statusClass)) {
+                        matchStatus = MatchEnum.MatchStatus.END;
+                    } else if ("cancel".equals(statusClass)) {
+                        matchStatus = MatchEnum.MatchStatus.CANCELED;
+                        reason  = game.querySelector(".bottom ul li a").innerText();
+                    } else if ("ing".equals(statusClass)) {
+                        matchStatus = MatchEnum.MatchStatus.PROGRESS;
+                        reason  = game.querySelector(".bottom ul li a").innerText();
+                    }
 
-                // 상태, 취소 사유 처리
-                var matchStatus = MatchEnum.MatchStatus.PROGRESS;
-                var reason = "-";
-                if ("end".equals(statusClass)) {
-                    matchStatus = MatchEnum.MatchStatus.END;
-                } else if ("cancel".equals(statusClass)) {
-                    matchStatus = MatchEnum.MatchStatus.CANCELED;
-                    reason  = game.querySelector(".bottom ul li a").innerText();
-                }
+                    // 더블헤더 여부 처리
+                    var matchOrder = 0;
+                    ElementHandle dhSpan = game.querySelector("span.dh");
+                    if (dhSpan != null) {
+                        matchOrder = dhSpan.innerText().equals("DH1") ? 1 : 2;
+                    }
 
-                // 더블헤더 여부 처리
-                var matchOrder = 0;
-                ElementHandle dhSpan = game.querySelector("span.dh");
-                if (dhSpan != null) {
-                    matchOrder = dhSpan.innerText().equals("DH1") ? 1 : 2;
-                }
+                    // 어웨이 팀명 (왼쪽 엠블럼)
+                    String awaySrc = game.querySelector(".emb.txt-r img").getAttribute("src");
+                    String awayTeamName = "";
+                    Matcher awayMatcher = matchStatus.equals(MatchEnum.MatchStatus.CANCELED) ? Pattern.compile("emblemR_(\\w+)\\.png").matcher(awaySrc) : Pattern.compile("emblem_(\\w+)\\.png").matcher(awaySrc);
+                    if (awayMatcher.find()) {
+                        awayTeamName = awayMatcher.group(1);
+                    }
 
-                // 어웨이 팀명 (왼쪽 엠블럼)
-                String awaySrc = game.querySelector(".emb.txt-r img").getAttribute("src");
-                String awayTeamName = "";
-                Matcher awayMatcher = matchStatus.equals(MatchEnum.MatchStatus.CANCELED) ? Pattern.compile("emblemR_(\\w+)\\.png").matcher(awaySrc) : Pattern.compile("emblem_(\\w+)\\.png").matcher(awaySrc);
-                if (awayMatcher.find()) {
-                    awayTeamName = awayMatcher.group(1);
-                }
+                    // 홈 팀명 (오른쪽 엠블럼)
+                    String homeSrc = game.querySelector(".emb:not(.txt-r) img").getAttribute("src");
+                    String homeTeamName = "";
+                    Matcher homeMatcher = matchStatus.equals(MatchEnum.MatchStatus.CANCELED) ? Pattern.compile("emblemR_(\\w+)\\.png").matcher(homeSrc) : Pattern.compile("emblem_(\\w+)\\.png").matcher(homeSrc);
+                    if (homeMatcher.find()) {
+                        homeTeamName = homeMatcher.group(1);
+                    }
 
-                // 홈 팀명 (오른쪽 엠블럼)
-                String homeSrc = game.querySelector(".emb:not(.txt-r) img").getAttribute("src");
-                String homeTeamName = "";
-                Matcher homeMatcher = matchStatus.equals(MatchEnum.MatchStatus.CANCELED) ? Pattern.compile("emblemR_(\\w+)\\.png").matcher(homeSrc) : Pattern.compile("emblem_(\\w+)\\.png").matcher(homeSrc);
-                if (homeMatcher.find()) {
-                    homeTeamName = homeMatcher.group(1);
-                }
+                    // 어웨이 점수
+                    var awayScoreSpan = game.querySelector(".team.away .score");
+                    Short awayScore = awayScoreSpan != null ? Short.parseShort(awayScoreSpan.innerText()) : null;
+                    // 홈 점수
+                    var homeScoreSpn = game.querySelector(".team.home .score");
+                    Short homeScore = homeScoreSpn != null ? Short.parseShort(homeScoreSpn.innerText()) : null;
 
-                // 어웨이 점수
-                var awayScoreSpan = game.querySelector(".team.away .score");
-                Short awayScore = awayScoreSpan != null ? Short.parseShort(awayScoreSpan.innerText()) : null;
-                // 홈 점수
-                var homeScoreSpn = game.querySelector(".team.home .score");
-                Short homeScore = homeScoreSpn != null ? Short.parseShort(homeScoreSpn.innerText()) : null;
+                    id = formattedDate + awayTeamName + homeTeamName + matchOrder;
 
-                id = formattedDate + awayTeamName + homeTeamName + matchOrder;
+                    var matchEntity = gameMatchRepository.findById(id).orElse(null);
+                    if (matchEntity == null) continue;
+                    var stadiumEntity = matchEntity.getStadiumEntity();
 
-                var matchEntity = gameMatchRepository.findById(id).orElse(null);
-                if (matchEntity == null) continue;
-                var stadiumEntity = matchEntity.getStadiumEntity();
+                    // Redis 저장 처리
+                    ElementHandle status = game.querySelector("span.staus");
+                    Map<String, Object> map = new HashMap<>();
 
-                // Redis 저장 처리
-                ElementHandle status = game.querySelector("span.staus");
-                Map<String, Object> map = new HashMap<>();
+                    String time = matchEntity.getMatchAt().format(DateTimeFormatter.ofPattern("HH:mm"));
 
-                String time = matchEntity.getMatchAt().format(DateTimeFormatter.ofPattern("HH:mm"));
+                    map.put("data", formattedDate);
+                    map.put("time", time);
+                    map.put("awayId", matchEntity.getAwayTeamEntity().getId());
+                    map.put("awayImage", awaySrc);
+                    map.put("awayScore", awayScore != null ? awayScore : null);
+                    map.put("homeId", matchEntity.getHomeTeamEntity().getId());
+                    map.put("homeImage", homeSrc);
+                    map.put("homeScore", homeScore != null ? homeScore : null);
+                    map.put("status", matchStatus);
+                    map.put("statusDetail", status.innerText());
+                    map.put("stadium", stadiumEntity.getFullName());
+                    map.put("stadiumId", stadiumEntity.getId());
 
-                map.put("data", formattedDate);
-                map.put("time", time);
-                map.put("awayId", matchEntity.getAwayTeamEntity().getId());
-                map.put("awayImage", awaySrc);
-                map.put("awayScore", awayScore != null ? awayScore : null);
-                map.put("homeId", matchEntity.getHomeTeamEntity().getId());
-                map.put("homeImage", homeSrc);
-                map.put("homeScore", homeScore != null ? homeScore : null);
-                map.put("status", matchStatus);
-                map.put("statusDetail", status.innerText());
-                map.put("stadium", stadiumEntity.getFullName());
-                map.put("stadiumId", stadiumEntity.getId());
+                    redisHandler.pushHash(formattedDate + "_match_list", id, map);
 
-                redisHandler.pushHash(formattedDate + "_match_list", id, map);
+                    // 경기 상태 변경
+                    if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.READY) ||
+                        matchEntity.getStatus().equals(MatchEnum.MatchStatus.PROGRESS)) {
 
-                // 경기 상태 변경
-                if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.READY) ||
-                    matchEntity.getStatus().equals(MatchEnum.MatchStatus.PROGRESS)) {
+                        matchEntity = matchEntity.toBuilder()
+                                .reason(reason)
+                                .status(matchStatus)
+                                .build();
+                        gameMatchRepository.save(matchEntity);
 
-                    matchEntity = matchEntity.toBuilder()
-                            .reason(reason)
-                            .status(matchStatus)
-                            .build();
-                    gameMatchRepository.save(matchEntity);
+                        switch (matchStatus) {
+                            case END -> {
+                                matchEntity = matchEntity.toBuilder()
+                                        .awayScore(awayScore)
+                                        .homeScore(homeScore)
+                                        .status(matchStatus)
+                                        .build();
+                                gameMatchRepository.save(matchEntity);
 
-                    switch (matchStatus) {
-                        case END -> {
-                            matchEntity = matchEntity.toBuilder()
-                                    .awayScore(awayScore)
-                                    .homeScore(homeScore)
-                                    .status(matchStatus)
-                                    .build();
-                            gameMatchRepository.save(matchEntity);
-
-                            var writeEventDto = new WriteEventDto(id, null, null, EventType.BATCH);
-                            redisHandler.pushEvent("write_diary", writeEventDto);
-                        }
-                        case CANCELED -> {
-                            matchEntity = matchEntity.toBuilder()
-                                    .reason(reason)
-                                    .status(matchStatus)
-                                    .build();
-                            gameMatchRepository.save(matchEntity);
-                            var writeEventDto = new WriteEventDto(id, null, null, EventType.BATCH);
-                            redisHandler.pushEvent("write_diary", writeEventDto);
+                                var writeEventDto = new WriteEventDto(id, null, null, EventType.BATCH);
+                                redisHandler.pushEvent("write_diary", writeEventDto);
+                            }
+                            case CANCELED -> {
+                                matchEntity = matchEntity.toBuilder()
+                                        .reason(reason)
+                                        .status(matchStatus)
+                                        .build();
+                                gameMatchRepository.save(matchEntity);
+                                var writeEventDto = new WriteEventDto(id, null, null, EventType.BATCH);
+                                redisHandler.pushEvent("write_diary", writeEventDto);
+                            }
                         }
                     }
                 }
