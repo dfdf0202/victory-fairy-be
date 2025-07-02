@@ -97,11 +97,14 @@ public interface MemberDomain {
             String message
     ) {}
 
-    @Schema(name = "Member.MemberLoginRequest")
-    record MemberInfoUpdateRequest(
+    @Schema(name = "Member.MemberProfileUpdateRequest")
+    record MemberProfileUpdateRequest(
             @Schema(description = "업로드된 파일 id")
-            Long fileId,
+            Long fileId
+    ) {}
 
+    @Schema(name = "Member.MemberLoginRequest")
+    record MemberNickNmUpdateRequest(
             @Schema(description = "닉네임", requiredMode = Schema.RequiredMode.REQUIRED)
             String nickNm
     ) {}

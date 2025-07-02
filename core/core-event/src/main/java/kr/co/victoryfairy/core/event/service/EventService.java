@@ -104,10 +104,6 @@ public class EventService {
         var matchEntity = matchRepository.findById(eventDto.gameId())
                 .orElse(null);
 
-        if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.PROGRESS)) {
-            return false;
-        }
-
         var diaryEntities = diaryRepository.findByGameMatchEntityAndIsRatedFalse(matchEntity);
 
         if (diaryEntities.isEmpty()) {

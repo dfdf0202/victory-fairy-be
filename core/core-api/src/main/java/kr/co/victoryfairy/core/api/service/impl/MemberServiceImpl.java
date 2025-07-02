@@ -7,7 +7,6 @@ import io.dodn.springboot.core.enums.MatchEnum;
 import io.dodn.springboot.core.enums.MemberEnum;
 import io.dodn.springboot.core.enums.RefType;
 import kr.co.victoryfairy.core.api.domain.MemberDomain;
-import kr.co.victoryfairy.core.api.domain.MyPageDomain;
 import kr.co.victoryfairy.core.api.model.NickNameInfo;
 import kr.co.victoryfairy.core.api.service.MemberService;
 import kr.co.victoryfairy.core.api.service.oauth.JwtService;
@@ -201,7 +200,34 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     @Transactional
-    public void updateMemberInfo(MemberDomain.MemberInfoUpdateRequest request) {
+    public void updateMemberProfile(MemberDomain.MemberProfileUpdateRequest request) {
+        var id = RequestUtils.getId();
+        if (id == null) throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
+
+        // 기존 등록된 프로필 사진 isUse false 처리
+        var fileRefEntity = fileRefRepository.findByRefTypeAndRefIdAndIsUseTrue(RefType.PROFILE, id).orElse(null);
+        if (fileRefEntity != null) {
+            fileRefEntity.delete();
+        }
+
+        // TODO file id 로 이미지 path 저장 처리
+        if (request.fileId() != null) {
+            var fileEntity = fileRepository.findById(request.fileId())
+                    .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+
+            var newFileRefEntity = FileRefEntity.builder()
+                    .fileEntity(fileEntity)
+                    .refId(id)
+                    .refType(RefType.PROFILE)
+                    .build();
+
+            fileRefRepository.save(newFileRefEntity);
+        }
+    }
+
+    @Override
+    public void updateMemberNickNm(MemberDomain.MemberNickNmUpdateRequest request) {
         var id = RequestUtils.getId();
         if (id == null) throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
 
@@ -224,27 +250,6 @@ public class MemberServiceImpl implements MemberService {
                 .build();
 
         memberInfoRepository.save(memberInfoEntity);
-
-        // 기존 등록된 프로필 사진 isUse false 처리
-        var fileRefEntity = fileRefRepository.findByRefTypeAndRefIdAndIsUseTrue(RefType.PROFILE, id).orElse(null);
-        if (fileRefEntity != null) {
-            fileRefEntity.delete();
-        }
-
-        // TODO file id 로 이미지 path 저장 처리
-        if (request.fileId() != null) {
-            var fileEntity = fileRepository.findById(request.fileId())
-                    .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
-
-
-            var newFileRefEntity = FileRefEntity.builder()
-                    .fileEntity(fileEntity)
-                    .refId(id)
-                    .refType(RefType.PROFILE)
-                    .build();
-
-            fileRefRepository.save(newFileRefEntity);
-        }
 
         // Redis 에 저장된 데이터 삭제 처리
         redisHandler.deleteHashValue("checkNick", request.nickNm());

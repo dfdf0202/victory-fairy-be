@@ -12,7 +12,6 @@ import kr.co.victoryfairy.core.api.service.MemberService;
 import kr.co.victoryfairy.support.constant.MessageEnum;
 import kr.co.victoryfairy.support.model.CustomResponse;
 import lombok.RequiredArgsConstructor;
-import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -75,10 +74,18 @@ public class MemberController {
     }
 
     @SecurityRequirement(name = "accessToken")
-    @Operation(summary = "프로필 사진, 닉네임 수정")
-    @PatchMapping("/info")
-    public CustomResponse<MessageEnum> updateMemberInfo(@RequestBody @Validated MemberDomain.MemberInfoUpdateRequest request) {
-        memberService.updateMemberInfo(request);
+    @Operation(summary = "프로필 사진 수정")
+    @PatchMapping("/profile")
+    public CustomResponse<MessageEnum> updateMemberProfile(@RequestBody @Validated MemberDomain.MemberProfileUpdateRequest request) {
+        memberService.updateMemberProfile(request);
+        return CustomResponse.ok(MessageEnum.Common.REQUEST);
+    }
+
+    @SecurityRequirement(name = "accessToken")
+    @Operation(summary = "닉네임 수정")
+    @PatchMapping("/nick-name")
+    public CustomResponse<MessageEnum> updateMemberNickNm(@RequestBody @Validated MemberDomain.MemberNickNmUpdateRequest request) {
+        memberService.updateMemberNickNm(request);
         return CustomResponse.ok(MessageEnum.Common.REQUEST);
     }
 

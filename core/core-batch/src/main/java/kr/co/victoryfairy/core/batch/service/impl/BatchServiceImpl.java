@@ -18,6 +18,8 @@ import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
 import java.time.DayOfWeek;
@@ -177,13 +179,15 @@ public class BatchServiceImpl implements BatchService {
                     if (matchEntity.getStatus().equals(MatchEnum.MatchStatus.READY) ||
                         matchEntity.getStatus().equals(MatchEnum.MatchStatus.PROGRESS)) {
 
-                        matchEntity = matchEntity.toBuilder()
-                                .reason(reason)
-                                .status(matchStatus)
-                                .build();
-                        gameMatchRepository.save(matchEntity);
-
+                        String finalId = id;
                         switch (matchStatus) {
+                            case PROGRESS -> {
+                                matchEntity = matchEntity.toBuilder()
+                                        .reason(reason)
+                                        .status(matchStatus)
+                                        .build();
+                                gameMatchRepository.save(matchEntity);
+                            }
                             case END -> {
                                 matchEntity = matchEntity.toBuilder()
                                         .awayScore(awayScore)
@@ -192,8 +196,14 @@ public class BatchServiceImpl implements BatchService {
                                         .build();
                                 gameMatchRepository.save(matchEntity);
 
-                                var writeEventDto = new WriteEventDto(id, null, null, EventType.BATCH);
-                                redisHandler.pushEvent("write_diary", writeEventDto);
+                                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                                    @Override
+                                    public void afterCommit() {
+                                        var writeEventDto = new WriteEventDto(finalId, null, null, EventType.BATCH);
+                                        redisHandler.pushEvent("write_diary", writeEventDto);
+                                    }
+                                });
+
                             }
                             case CANCELED -> {
                                 matchEntity = matchEntity.toBuilder()
@@ -201,8 +211,14 @@ public class BatchServiceImpl implements BatchService {
                                         .status(matchStatus)
                                         .build();
                                 gameMatchRepository.save(matchEntity);
-                                var writeEventDto = new WriteEventDto(id, null, null, EventType.BATCH);
-                                redisHandler.pushEvent("write_diary", writeEventDto);
+
+                                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                                    @Override
+                                    public void afterCommit() {
+                                        var writeEventDto = new WriteEventDto(finalId, null, null, EventType.BATCH);
+                                        redisHandler.pushEvent("write_diary", writeEventDto);
+                                    }
+                                });
                             }
                         }
                     }

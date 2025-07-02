@@ -14,6 +14,7 @@ import kr.co.victoryfairy.support.exception.CustomException;
 import kr.co.victoryfairy.support.handler.RedisHandler;
 import kr.co.victoryfairy.support.utils.RequestUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -61,7 +62,7 @@ public class DiaryServiceImpl implements DiaryService {
                 .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
         if (diaryRepository.findByMemberAndGameMatchEntity(member, gameMatchEntity) != null) {
-            throw new CustomException(MessageEnum.Data.FAIL_DUPLICATE);
+            throw new CustomException(HttpStatus.CONFLICT, MessageEnum.Data.FAIL_DUPLICATE);
         }
 
         DiaryEntity diaryEntity = DiaryEntity.builder()
@@ -196,7 +197,9 @@ public class DiaryServiceImpl implements DiaryService {
         diaryRepository.save(diaryEntity);
 
         var bfFileRefEntity = fileRefRepository.findAllByRefTypeAndRefIdAndIsUseTrue(RefType.DIARY, diaryId);
-        fileRefRepository.deleteAll(bfFileRefEntity);
+        if (!bfFileRefEntity.isEmpty()) {
+            fileRefRepository.deleteAll(bfFileRefEntity);
+        }
 
         if (!request.fileId().isEmpty()) {
             // 기존 이미지 삭제 처리
@@ -217,7 +220,9 @@ public class DiaryServiceImpl implements DiaryService {
         if (!request.foodNameList().isEmpty()) {
             // 기존 데이터 삭제 처리
             var bfFoodEntities = diaryFoodRepository.findByDiaryEntityId(diaryId);
-            diaryFoodRepository.deleteAll(bfFoodEntities);
+            if (!bfFoodEntities.isEmpty()) {
+                diaryFoodRepository.deleteAll(bfFoodEntities);
+            }
 
             List<DiaryFoodEntity> foodList = new ArrayList<>();
             for (String food : request.foodNameList()) {
@@ -235,7 +240,10 @@ public class DiaryServiceImpl implements DiaryService {
         if (!request.partnerList().isEmpty()) {
             // 기존 데이터 삭제 처리
             var bfPartnerEntities = partnerRepository.findByDiaryEntityId(diaryId);
-            partnerRepository.deleteAll(bfPartnerEntities);
+            if (!bfPartnerEntities.isEmpty()) {
+                partnerRepository.deleteAll(bfPartnerEntities);
+            }
+
 
             List<PartnerEntity> partnerEntityList = new ArrayList<>();
             for (DiaryDomain.PartnerDto partnerDto : request.partnerList()) {
@@ -268,10 +276,15 @@ public class DiaryServiceImpl implements DiaryService {
             if (!bfSeatReviewEntities.isEmpty()) {
                 seatReviewRepository.deleteAll(bfSeatReviewEntities);
             }
-            seatUseHistoryRepository.delete(bfSeatUseHistoryEntity);
+            if (bfSeatUseHistoryEntity != null) {
+                seatUseHistoryRepository.delete(bfSeatUseHistoryEntity);
+            }
 
             // 좌석 조회
-            SeatEntity seatEntity = seatRepository.findById(diaryDtoSeat.id()).orElse(null);
+            SeatEntity seatEntity = null;
+            if (diaryDtoSeat.id() != null) {
+                seatEntity = seatRepository.findById(diaryDtoSeat.id()).orElse(null);
+            }
 
             // 좌석 이용 내역 저장
             SeatUseHistoryEntity seatUseHistoryEntity = SeatUseHistoryEntity.builder()
@@ -500,6 +513,7 @@ public class DiaryServiceImpl implements DiaryService {
         DiaryDomain.SeatUseHistoryDto seatUseHistoryDto = null;
 
         var seatUseHistoryEntity = seatUseHistoryRepository.findByDiaryEntityId(diaryId);
+        var seatEntity = seatUseHistoryEntity.getSeatEntity();
         if (seatUseHistoryEntity != null) {
             var seatReviewList = seatReviewRepository.findBySeatUseHistoryEntity(seatUseHistoryEntity).stream()
                     .map(entity -> {
@@ -511,7 +525,7 @@ public class DiaryServiceImpl implements DiaryService {
                     .toList();
 
             seatUseHistoryDto = new DiaryDomain.SeatUseHistoryDto(
-                    seatUseHistoryDto != null ? seatUseHistoryEntity.getId() : null,
+                    seatEntity != null ? seatEntity.getId() : null,
                     seatUseHistoryEntity.getSeatName(),
                     seatReviewList
             );

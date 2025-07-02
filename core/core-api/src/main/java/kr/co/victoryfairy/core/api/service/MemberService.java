@@ -2,7 +2,6 @@ package kr.co.victoryfairy.core.api.service;
 
 import io.dodn.springboot.core.enums.MemberEnum;
 import kr.co.victoryfairy.core.api.domain.MemberDomain;
-import kr.co.victoryfairy.core.api.domain.MyPageDomain;
 
 public interface MemberService {
 
@@ -40,10 +39,16 @@ public interface MemberService {
     MemberDomain.MemberCheckNickDuplicateResponse checkNickNmDuplicate(String nickNm);
 
     /**
-     * 멤버 정보 수정
+     * 멤버 프로필 사진 수정
      * @param request
      */
-    void updateMemberInfo(MemberDomain.MemberInfoUpdateRequest request);
+    void updateMemberProfile(MemberDomain.MemberProfileUpdateRequest request);
+
+    /**
+     * 멤버 닉네임 수정
+     * @param request
+     */
+    void updateMemberNickNm(MemberDomain.MemberNickNmUpdateRequest request);
 
     /**
      * 집관 승률
