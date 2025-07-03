@@ -47,6 +47,7 @@ public class DiaryServiceImpl implements DiaryService {
     private final FileRefRepository fileRefRepository;
     private final RedisHandler redisHandler;
 
+    @Override
     @Transactional
     public DiaryDomain.WriteResponse writeDiary(DiaryDomain.WriteRequest diaryDto){
         // 로그인한 회원 조회
@@ -513,8 +514,8 @@ public class DiaryServiceImpl implements DiaryService {
         DiaryDomain.SeatUseHistoryDto seatUseHistoryDto = null;
 
         var seatUseHistoryEntity = seatUseHistoryRepository.findByDiaryEntityId(diaryId);
-        var seatEntity = seatUseHistoryEntity.getSeatEntity();
         if (seatUseHistoryEntity != null) {
+            var seatEntity = seatUseHistoryEntity.getSeatEntity();
             var seatReviewList = seatReviewRepository.findBySeatUseHistoryEntity(seatUseHistoryEntity).stream()
                     .map(entity -> {
                         if (entity == null) {
