@@ -86,4 +86,9 @@ public interface MyPageDomain {
             int count,
             LocalDateTime lastVisited
     ) {}
+
+    record TeamResultDto(
+            int count,
+            LocalDateTime lastPlayedAt
+    ) {}
 }

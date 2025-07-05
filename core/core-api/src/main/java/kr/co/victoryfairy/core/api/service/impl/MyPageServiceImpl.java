@@ -119,8 +119,6 @@ public class MyPageServiceImpl implements MyPageService {
         short stadiumWinAvg = 0;
         short homeWinAvg = 0;
 
-        var winCountByTeam = new HashMap<String, Integer>();
-        var loseCountByTeam = new HashMap<String, Integer>();
         Map<String, MyPageDomain.VisitInfoDto> stadiumVisitCount = new HashMap<>();
 
         short homeGameCount = 0;
@@ -131,13 +129,28 @@ public class MyPageServiceImpl implements MyPageService {
         short currentStreak = 0;
         short maxStreak = 0;
 
+        var winMap = new HashMap<String, MyPageDomain.TeamResultDto>();
+        var loseMap = new HashMap<String, MyPageDomain.TeamResultDto>();
+
         for (var record : recordList) {
-            // 최대 승리 / 패배 팀 처리
+            var opponent = record.getOpponentTeamName();
+            var matchAt = record.getGameMatchEntity().getMatchAt();
             var result = record.getResultType();
+
             if (result == MatchEnum.ResultType.WIN) {
-                winCountByTeam.merge(record.getOpponentTeamName(), 1, Integer::sum);
+                winMap.merge(opponent, new MyPageDomain.TeamResultDto(1, matchAt), (oldVal, newVal) ->
+                        new MyPageDomain.TeamResultDto(
+                                oldVal.count() + 1,
+                                matchAt.isAfter(oldVal.lastPlayedAt()) ? matchAt : oldVal.lastPlayedAt()
+                        )
+                );
             } else if (result == MatchEnum.ResultType.LOSS) {
-                loseCountByTeam.merge(record.getOpponentTeamName(), 1, Integer::sum);
+                loseMap.merge(opponent, new MyPageDomain.TeamResultDto(1, matchAt), (oldVal, newVal) ->
+                        new MyPageDomain.TeamResultDto(
+                                oldVal.count() + 1,
+                                matchAt.isAfter(oldVal.lastPlayedAt()) ? matchAt : oldVal.lastPlayedAt()
+                        )
+                );
             }
         }
 
@@ -259,14 +272,22 @@ public class MyPageServiceImpl implements MyPageService {
         }
 
         // 최대 승리 팀
-        var maxWinTeam = winCountByTeam.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
+        var maxWinTeam = winMap.entrySet().stream()
+                .max((e1, e2) -> {
+                    int cmp = Integer.compare(e1.getValue().count(), e2.getValue().count());
+                    if (cmp != 0) return cmp;
+                    return e1.getValue().lastPlayedAt().compareTo(e2.getValue().lastPlayedAt());
+                })
                 .map(Map.Entry::getKey)
                 .orElse("-");
 
         // 최대 패배 팀
-        var maxLoseTeam = loseCountByTeam.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
+        var maxLoseTeam = loseMap.entrySet().stream()
+                .max((e1, e2) -> {
+                    int cmp = Integer.compare(e1.getValue().count(), e2.getValue().count());
+                    if (cmp != 0) return cmp;
+                    return e1.getValue().lastPlayedAt().compareTo(e2.getValue().lastPlayedAt());
+                })
                 .map(Map.Entry::getKey)
                 .orElse("-");
 
