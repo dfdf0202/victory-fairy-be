@@ -12,38 +12,30 @@ import kr.co.victoryfairy.support.properties.JwtProperties;
 import kr.co.victoryfairy.support.utils.AccessTokenUtils;
 import kr.co.victoryfairy.support.webfilter.PathPatternWebFilter;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 
 @Component
-public class AccessTokenWebFilter extends PathPatternWebFilter {
+public class AccessTokenPublicWebFilter extends PathPatternWebFilter {
+
     private final JwtProperties jwtProperties;
 
-    public AccessTokenWebFilter(JwtProperties jwtProperties) {
+    public AccessTokenPublicWebFilter(JwtProperties jwtProperties) {
         this.jwtProperties = jwtProperties;
-        this.addIncludePathPatterns("/v2/api/member/**");
-        this.addIncludePathPatterns("/v2/api/my-page/**");
-        this.addIncludePathPatterns("/v2/api/diary/**");
-        this.addIncludePathPatterns("/member/**");
-        this.addIncludePathPatterns("/my-page/**");
-        this.addIncludePathPatterns("/diary/**");
-        this.addExcludePathPatterns(
-            "/",
-            "/swagger-ui/**",
-            "/swagger/**",
-            "/v2/api/member/auth-path",
-            "/v2/api/member/login",
-            "/member/login",
-            "/member/auth-path",
-            "/v2/api/diary/list",
-            "/diary/list"
-        );
+        this.addIncludePathPatterns("/v2/api/match/list");
+        this.addIncludePathPatterns("/v2/api/diary/list");
+        this.addIncludePathPatterns("/match/list");
+        this.addIncludePathPatterns("/diary/list");
     }
 
     @Override
     public void filterMatched(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         try {
-            AccessTokenUtils.checkToken(request, jwtProperties);
+            String accessToken = AccessTokenUtils.getAccessToken(request);
+            if (StringUtils.hasText(accessToken)) {
+                AccessTokenUtils.checkAccessToken(accessToken, jwtProperties, request);
+            }
         } catch (Exception e) {
             ObjectMapper objectMapper = new ObjectMapper();
             response.setContentType("application/json");

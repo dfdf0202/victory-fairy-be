@@ -5,7 +5,9 @@ import io.dodn.springboot.core.enums.MatchEnum;
 import kr.co.victoryfairy.core.api.domain.MatchDomain;
 import kr.co.victoryfairy.core.api.service.MatchService;
 import kr.co.victoryfairy.storage.db.core.entity.HitterRecordEntity;
+import kr.co.victoryfairy.storage.db.core.entity.MemberInfoEntity;
 import kr.co.victoryfairy.storage.db.core.entity.PitcherRecordEntity;
+import kr.co.victoryfairy.storage.db.core.entity.TeamEntity;
 import kr.co.victoryfairy.storage.db.core.repository.*;
 import kr.co.victoryfairy.support.constant.MessageEnum;
 import kr.co.victoryfairy.support.exception.CustomException;
@@ -39,13 +41,12 @@ public class MatchServiceImpl implements MatchService {
     @Override
     public MatchDomain.MatchListResponse findList(LocalDate date) {
         var memberId = RequestUtils.getId();
-        if (memberId == null) throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
 
-        var memberEntity = memberRepository.findById(memberId)
-                .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
-        var memberInfoEntity = memberInfoRepository.findByMemberEntity(memberEntity)
-                .orElseThrow(() -> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
-        var teamEntity = memberInfoEntity.getTeamEntity();
+        var teamEntity = Optional.ofNullable(memberId)
+                .flatMap(memberRepository::findById)
+                .flatMap(memberInfoRepository::findByMemberEntity)
+                .map(MemberInfoEntity::getTeamEntity)
+                .orElse(null);
 
         var formatDate = date.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 
@@ -103,10 +104,10 @@ public class MatchServiceImpl implements MatchService {
                         );
                     })
                     .sorted((m1, m2) -> {
-                        boolean m1HasTeam = (m1.awayTeam() != null && m1.awayTeam().id() == teamEntity.getId()) ||
-                                (m1.homeTeam() != null && m1.homeTeam().id() == teamEntity.getId());
-                        boolean m2HasTeam = (m2.awayTeam() != null && m2.awayTeam().id() == teamEntity.getId()) ||
-                                (m2.homeTeam() != null && m2.homeTeam().id() == teamEntity.getId());
+                        boolean m1HasTeam = (teamEntity != null && m1.awayTeam() != null && m1.awayTeam().id() == teamEntity.getId()) ||
+                                (teamEntity != null && m1.homeTeam() != null && m1.homeTeam().id() == teamEntity.getId());
+                        boolean m2HasTeam = (teamEntity != null && m2.awayTeam() != null && m2.awayTeam().id() == teamEntity.getId()) ||
+                                (teamEntity != null && m2.homeTeam() != null && m2.homeTeam().id() == teamEntity.getId());
                         return Boolean.compare(!m1HasTeam, !m2HasTeam);  // true가 뒤로 가도록 정렬
                     })
                     .toList();
@@ -155,10 +156,10 @@ public class MatchServiceImpl implements MatchService {
 
         if (teamEntity != null) {
             matchList = matchList.stream().sorted((m1, m2) -> {
-                        boolean m1HasTeam = (m1.awayTeam() != null && m1.awayTeam().id() == teamEntity.getId()) ||
-                                (m1.homeTeam() != null && m1.homeTeam().id() == teamEntity.getId());
-                        boolean m2HasTeam = (m2.awayTeam() != null && m2.awayTeam().id() == teamEntity.getId()) ||
-                                (m2.homeTeam() != null && m2.homeTeam().id() == teamEntity.getId());
+                        boolean m1HasTeam = (teamEntity != null && m1.awayTeam() != null && m1.awayTeam().id() == teamEntity.getId()) ||
+                                (teamEntity != null && m1.homeTeam() != null && m1.homeTeam().id() == teamEntity.getId());
+                        boolean m2HasTeam = (teamEntity != null && m2.awayTeam() != null && m2.awayTeam().id() == teamEntity.getId()) ||
+                                (teamEntity != null && m2.homeTeam() != null && m2.homeTeam().id() == teamEntity.getId());
                         return Boolean.compare(!m1HasTeam, !m2HasTeam);  // true가 뒤로 가도록 정렬
                     }).toList();
         }

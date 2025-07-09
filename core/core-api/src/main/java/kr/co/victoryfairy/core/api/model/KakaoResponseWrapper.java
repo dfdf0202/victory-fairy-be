@@ -13,11 +13,18 @@ public class KakaoResponseWrapper {
     @JsonProperty("kakao_account")
     private KakaoAccount kakaoAccount;
 
+    @JsonProperty("properties")
+    private KakaoProperties kakaoProperties;
+
     public String getId() {
         return id;
     }
 
     public KakaoAccount getKakaoAccount() {
         return kakaoAccount;
+    }
+
+    public KakaoProperties getKakaoProperties() {
+        return kakaoProperties;
     }
 }

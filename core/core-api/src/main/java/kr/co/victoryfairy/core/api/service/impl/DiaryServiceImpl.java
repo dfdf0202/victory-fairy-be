@@ -368,19 +368,26 @@ public class DiaryServiceImpl implements DiaryService {
     @Override
     public List<DiaryDomain.ListResponse> findList(YearMonth date) {
         var id = RequestUtils.getId();
-        if (id == null) {
-            throw new CustomException(MessageEnum.Auth.FAIL_EXPIRE_AUTH);
-        }
 
         var startDate = date.atDay(1);
         var endDate = date.atEndOfMonth();
 
-        var request = new DiaryModel.ListRequest(id, startDate, endDate);
+        var monthOfDays = IntStream.rangeClosed(1, date.lengthOfMonth())
+                .mapToObj(day -> date.atDay(day))
+                .toList();
 
-        var diaryList = diaryCustomRepository.findList(request);
+        if (id == null) {
+            return monthOfDays.stream()
+                    .map(day -> new DiaryDomain.ListResponse(null, day, null, null))
+                    .toList();
+        }
+
+        var diaryList = diaryCustomRepository.findList(new DiaryModel.ListRequest(id, startDate, endDate));
 
         if (diaryList.isEmpty()) {
-            return new ArrayList<>();
+            return monthOfDays.stream()
+                    .map(day -> new DiaryDomain.ListResponse(null, day, null, null))
+                    .toList();
         }
 
         var diaryIds = diaryList.stream()
@@ -399,10 +406,6 @@ public class DiaryServiceImpl implements DiaryService {
                         dto -> dto,
                         (existing, replacement) -> existing
                 ));
-
-        var monthOfDays = IntStream.rangeClosed(1, date.lengthOfMonth())
-                .mapToObj(day -> date.atDay(day))
-                .toList();
 
         return monthOfDays.stream()
                 .map(day -> {

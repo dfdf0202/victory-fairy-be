@@ -20,7 +20,6 @@ public class MatchController {
 
     private final MatchService matchService;
 
-    @SecurityRequirement(name = "accessToken")
     @Operation(summary = "특정 날짜 경기 불러오기")
     @GetMapping("/list")
     public CustomResponse<MatchDomain.MatchListResponse> findList(@RequestParam @DateTimeFormat(pattern = "yyyyMMdd") LocalDate date) {

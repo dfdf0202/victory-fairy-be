@@ -49,7 +49,6 @@ public class DiaryController {
         return CustomResponse.ok(MessageEnum.Common.DELETE);
     }
 
-    @SecurityRequirement(name = "accessToken")
     @Operation(summary = "일기 목록")
     @GetMapping("/list")
     public CustomResponse<List<DiaryDomain.ListResponse>> findList(@RequestParam @DateTimeFormat(pattern = "yyyyMM") YearMonth date) {

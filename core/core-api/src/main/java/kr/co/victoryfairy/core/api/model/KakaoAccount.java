@@ -10,6 +10,9 @@ public class KakaoAccount {
     @JsonProperty("email")
     private String email;
 
+    @JsonProperty("profile")
+    private Profile profile;
+
     @JsonProperty("has_email")
     private Boolean hasEmail;
 
@@ -25,4 +28,11 @@ public class KakaoAccount {
     public String getEmail() {
         return email;
     }
+}
+
+class Profile {
+    @JsonProperty("nickname")
+    String nickname;
+    @JsonProperty("is_default_nickname")
+    Boolean isDefaultNickname;
 }
