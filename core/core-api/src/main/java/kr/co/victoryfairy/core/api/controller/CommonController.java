@@ -18,6 +18,11 @@ public class CommonController {
 
     private final CommonService commonService;
 
+    @GetMapping("/health")
+    public CustomResponse<Boolean> healthCheck() {
+        return CustomResponse.ok(true);
+    }
+
     @Operation(summary = "팀 전체 목록 불러오기")
     @GetMapping("/team")
     public CustomResponse<List<CommonDomain.TeamListResponse>> findAll() {

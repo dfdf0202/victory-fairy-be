@@ -31,7 +31,10 @@ public class MemberController {
     public CustomResponse<MemberDomain.MemberOauthPathResponse> authPath(
             @RequestParam @Validated
             @Schema(description = "인증 로그인 타입", example = "KAKAO", implementation = MemberEnum.SnsType.class)
-            MemberEnum.SnsType snsType
+            MemberEnum.SnsType snsType,
+            @RequestParam(required = false)
+            @Schema(description = "request url")
+            String requestUrl
     ) {
         var response = memberService.getOauthPath(snsType);
         return CustomResponse.ok(response);
