@@ -23,6 +23,7 @@ import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.*;
@@ -50,11 +51,11 @@ public class AppleSnsService implements OauthService {
     private final static String APPLE_AUTH_URL = "https://appleid.apple.com";
 
     @Override
-    public String initSnsAuthPath() {
+    public String initSnsAuthPath(String redirectUrl) {
         return UriComponentsBuilder
                 .fromUriString("https://appleid.apple.com/auth/authorize")
                 .queryParam("client_id", appleClientId)
-                .queryParam("redirect_uri", appleCallbackUrl)
+                .queryParam("redirect_uri", StringUtils.hasText(redirectUrl) ? redirectUrl : appleCallbackUrl)
                 .queryParam("response_type", "code id_token")
                 .queryParam("scope", "name email")
                 .queryParam("response_mode", "form_post")

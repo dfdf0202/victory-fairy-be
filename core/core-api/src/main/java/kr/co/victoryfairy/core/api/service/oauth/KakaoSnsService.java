@@ -8,11 +8,11 @@ import kr.co.victoryfairy.core.api.model.KakaoResponseWrapper;
 import kr.co.victoryfairy.support.constant.MessageEnum;
 import kr.co.victoryfairy.support.exception.CustomException;
 import kr.co.victoryfairy.support.utils.HttpClientUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.HashMap;
@@ -31,11 +31,11 @@ public class KakaoSnsService implements OauthService {
     private String kakaoCallbackUrl;
 
     @Override
-    public String initSnsAuthPath() {
+    public String initSnsAuthPath(String redirectUrl) {
         return UriComponentsBuilder
                 .fromUriString("https://kauth.kakao.com/oauth/authorize")
                 .queryParam("client_id", kakaoClientId)
-                .queryParam("redirect_uri", kakaoCallbackUrl)
+                .queryParam("redirect_uri", StringUtils.hasText(redirectUrl) ? redirectUrl : kakaoCallbackUrl)
                 .queryParam("response_type", "code")
                 .queryParam("prompt", "login")
                 .build()

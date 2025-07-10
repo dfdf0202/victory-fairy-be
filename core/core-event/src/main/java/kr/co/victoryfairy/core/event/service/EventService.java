@@ -47,7 +47,7 @@ public class EventService {
 
         if (diaryEntity == null || diaryEntity.getIsRated()) {
             log.info(">>> Diary is null: {}", eventDto.diaryId());
-            return false;
+            return true;
         }
 
         var teamEntity = teamRepository.findById(diaryEntity.getTeamEntity().getId())
@@ -107,7 +107,7 @@ public class EventService {
         var diaryEntities = diaryRepository.findByGameMatchEntityAndIsRatedFalse(matchEntity);
 
         if (diaryEntities.isEmpty()) {
-            return false;
+            return true;
         }
 
         diaryEntities.forEach(diaryEntity -> {

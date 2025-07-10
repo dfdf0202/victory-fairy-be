@@ -33,10 +33,10 @@ public class MemberController {
             @Schema(description = "인증 로그인 타입", example = "KAKAO", implementation = MemberEnum.SnsType.class)
             MemberEnum.SnsType snsType,
             @RequestParam(required = false)
-            @Schema(description = "request url")
-            String requestUrl
+            @Schema(description = "redirect url")
+            String redirectUrl
     ) {
-        var response = memberService.getOauthPath(snsType);
+        var response = memberService.getOauthPath(snsType, redirectUrl);
         return CustomResponse.ok(response);
     }
 

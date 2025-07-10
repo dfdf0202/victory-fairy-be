@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.HashMap;
@@ -31,11 +32,11 @@ public class GoogleSnsService implements OauthService {
 
 
     @Override
-    public String initSnsAuthPath() {
+    public String initSnsAuthPath(String redirectUrl) {
         return UriComponentsBuilder
                 .fromUriString("https://accounts.google.com/o/oauth2/v2/auth")
                 .queryParam("client_id", googleClientId)
-                .queryParam("redirect_uri", googleCallbackUrl)
+                .queryParam("redirect_uri", StringUtils.hasText(redirectUrl) ? redirectUrl : googleCallbackUrl)
                 .queryParam("response_type", "code")
                 .queryParam("scope", "email openid")
                 .build()

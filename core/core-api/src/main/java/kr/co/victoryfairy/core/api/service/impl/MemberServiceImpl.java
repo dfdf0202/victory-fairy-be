@@ -44,9 +44,9 @@ public class MemberServiceImpl implements MemberService {
     private final RedisHandler redisHandler;
 
     @Override
-    public MemberDomain.MemberOauthPathResponse getOauthPath(MemberEnum.SnsType snsType) {
+    public MemberDomain.MemberOauthPathResponse getOauthPath(MemberEnum.SnsType snsType, String redirectUrl) {
         var service = oauthFactory.getService(snsType);
-        var response = service.initSnsAuthPath();
+        var response = service.initSnsAuthPath(redirectUrl);
         return new MemberDomain.MemberOauthPathResponse(response);
     }
 

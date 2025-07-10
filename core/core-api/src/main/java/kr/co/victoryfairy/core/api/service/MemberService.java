@@ -10,7 +10,7 @@ public interface MemberService {
      * @param snsType
      * @return
      */
-    MemberDomain.MemberOauthPathResponse getOauthPath(MemberEnum.SnsType snsType);
+    MemberDomain.MemberOauthPathResponse getOauthPath(MemberEnum.SnsType snsType, String redirectUrl);
 
     /**
      * sns 로그인

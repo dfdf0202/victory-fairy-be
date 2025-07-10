@@ -47,7 +47,7 @@ public class DiaryWrittenConsumer {
 
                 boolean success = switch (event.type()) {
                     case DIARY -> eventService.processDiary(event);
-                    default -> eventService.processBatch(event); // void → 성공 처리 보장?
+                    default -> eventService.processBatch(event);
                 };
 
                 if (success) {
