@@ -32,4 +32,11 @@ public class ScoreJob {
     public void checkMatchList() {
         batchService.checkMatchList();
     }
+
+    @Scheduled(cron = "${batch.check.file}", zone = "Asia/Seoul")
+    public void checkMissFile() {
+        batchService.checkMissFile();
+    }
+
+
 }

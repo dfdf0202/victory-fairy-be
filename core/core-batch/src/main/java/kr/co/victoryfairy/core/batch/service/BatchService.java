@@ -9,4 +9,6 @@ public interface BatchService {
     void checkEvent();
 
     void checkMatchList();
+
+    void checkMissFile();
 }

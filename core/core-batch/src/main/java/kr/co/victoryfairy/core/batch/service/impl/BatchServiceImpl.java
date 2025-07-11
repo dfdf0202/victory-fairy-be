@@ -10,6 +10,7 @@ import kr.co.victoryfairy.storage.db.core.entity.*;
 import kr.co.victoryfairy.storage.db.core.repository.*;
 import kr.co.victoryfairy.support.handler.RedisHandler;
 import kr.co.victoryfairy.support.handler.RedisOperator;
+import kr.co.victoryfairy.support.properties.FileProperties;
 import kr.co.victoryfairy.support.utils.SlackUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,8 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
+import java.io.File;
+import java.nio.file.Paths;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -46,7 +49,10 @@ public class BatchServiceImpl implements BatchService {
     private final HitterRecordRepository hitterRecordRepository;
     private final PitcherRecordRepository pitcherRecordRepository;
     private final StadiumRepository stadiumRepository;
+    private final FileRepository fileRepository;
+    private final FileCustomRepository fileCustomRepository;
 
+    private final FileProperties fileProperties;
     private final RedisHandler redisHandler;
     private final SlackUtils slackUtils;
     private final RedisOperator redisOperator;
@@ -57,6 +63,9 @@ public class BatchServiceImpl implements BatchService {
                             GameMatchCustomRepository gameMatchEntityCustomRepository, GameRecordRepository gameRecordRepository,
                             HitterRecordRepository hitterRecordRepository,
                             PitcherRecordRepository pitcherRecordRepository,
+                            FileRepository fileRepository,
+                            FileCustomRepository fileCustomRepository,
+                            FileProperties fileProperties,
                             RedisTemplate<String, Object> redisTemplate,
                             StadiumRepository stadiumRepository,
                             RedisHandler redisHandler, SlackUtils slackUtils, RedisOperator redisOperator) {
@@ -68,6 +77,9 @@ public class BatchServiceImpl implements BatchService {
         this.gameRecordRepository = gameRecordRepository;
         this.hitterRecordRepository = hitterRecordRepository;
         this.pitcherRecordRepository = pitcherRecordRepository;
+        this.fileRepository = fileRepository;
+        this.fileCustomRepository = fileCustomRepository;
+        this.fileProperties = fileProperties;
         this.redisHandler = redisHandler;
         this.slackUtils = slackUtils;
         this.redisOperator = redisOperator;
@@ -670,6 +682,48 @@ public class BatchServiceImpl implements BatchService {
                 slackUtils.message(date + " 대회 확인 중 에러 발생");
                 e.printStackTrace();
             }
+        }
+    }
+
+    @Override
+    public void checkMissFile() {
+        logger.info("========== Check Miss File Start ==========");
+        var date = LocalDateTime.now().minusDays(3);
+
+        var fileEntities = fileCustomRepository.findMissingFile(date);
+
+        var deletedFiles = new ArrayList<FileEntity>();
+        try {
+            if (!fileEntities.isEmpty()) {
+                for (FileEntity fileEntity : fileEntities) {
+                    String directoryPath = fileEntity.getPath();
+                    String saveName = fileEntity.getSaveName();
+                    String ext = fileEntity.getExt();
+
+                    File directory = new File(fileProperties.getStoragePath(), directoryPath);
+                    if (directory.exists() && directory.isDirectory()) {
+                        File[] filesToDelete = directory.listFiles(file ->
+                                file.getName().startsWith(saveName) && file.getName().endsWith("." + ext)
+                        );
+
+                        if (filesToDelete != null) {
+                            for (File file : filesToDelete) {
+                                boolean deleted = file.delete();
+                                if (deleted) {
+                                    System.out.println("Deleted file: " + file.getAbsolutePath());
+                                    deletedFiles.add(fileEntity);
+                                } else {
+                                    System.err.println("Failed to delete file: " + file.getAbsolutePath());
+                                }
+                            }
+                        }
+                    }
+                }
+
+                fileRepository.deleteAll(deletedFiles);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
