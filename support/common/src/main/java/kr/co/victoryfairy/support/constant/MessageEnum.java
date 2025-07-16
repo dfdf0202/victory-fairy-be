@@ -58,6 +58,7 @@ public interface  MessageEnum {
         AVAILABLE("사용 가능한 데이터 입니다.","This is the data available."),
         WRONG_APPROACH("잘못된 접근 입니다.","This is wrong approach."),
         NO_INTEREST_TEAM("등록된 응원 팀이 없습니다.", "No interest team found."),
+        TRY_AGAIN_MOMENT("잠시 후 다시 시도하세요", "Trying again moment."),
         ;
 
         private String descKr;

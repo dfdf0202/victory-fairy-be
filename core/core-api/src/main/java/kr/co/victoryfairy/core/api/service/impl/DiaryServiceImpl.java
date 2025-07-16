@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -52,119 +53,136 @@ public class DiaryServiceImpl implements DiaryService {
     public DiaryDomain.WriteResponse writeDiary(DiaryDomain.WriteRequest diaryDto){
         // 로그인한 회원 조회
         var id = RequestUtils.getId();
-        MemberEntity member = memberRepository.findById(Objects.requireNonNull(id))
-                .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
-        // 일기를 작성할 경기 조회
-        GameMatchEntity gameMatchEntity = gameMatchRepository.findById(diaryDto.gameMatchId())
-                .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+        String lockKey = "lock:diary:" + id + ":" + diaryDto.gameMatchId();
+        boolean locked = redisHandler.tryLock(lockKey, Duration.ofSeconds(5));
 
-        var teamEntity = teamRepository.findById(diaryDto.teamId())
-                .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
-
-        if (diaryRepository.findByMemberAndGameMatchEntity(member, gameMatchEntity) != null) {
-            throw new CustomException(HttpStatus.CONFLICT, MessageEnum.Data.FAIL_DUPLICATE);
+        if (!locked) {
+            throw new CustomException(HttpStatus.CONFLICT, MessageEnum.Data.TRY_AGAIN_MOMENT);
         }
 
-        DiaryEntity diaryEntity = DiaryEntity.builder()
-                .member(member)
-                .teamName(teamEntity.getName())
-                .teamEntity(teamEntity)
-                .viewType(diaryDto.viewType())
-                .gameMatchEntity(gameMatchEntity)
-                .weatherType(diaryDto.weather())
-                .moodType(diaryDto.mood())
-                .content(diaryDto.content())
-                .build();
-        diaryRepository.save(diaryEntity);
+        Long diaryId = null;
 
-        if (!diaryDto.fileId().isEmpty()) {
-            var fileEntities = fileRepository.findAllById(diaryDto.fileId());
-            var fileRefEntities = fileEntities.stream()
-                    .map(file -> FileRefEntity.builder()
-                            .fileEntity(file)
-                            .refId(diaryEntity.getId())
-                            .refType(RefType.DIARY)
-                            .build()
-                    )
-                    .toList();
-            fileRefRepository.saveAll(fileRefEntities);
-        }
+        try {
 
-        // 선택 입력값인 음식 리스트가 비어있지 않는 경우
-        if (!diaryDto.foodNameList().isEmpty()) {
-            List<DiaryFoodEntity> foodList = new ArrayList<>();
-            for (String food : diaryDto.foodNameList()) {
-                DiaryFoodEntity diaryFoodEntity = DiaryFoodEntity.builder()
-                        .diaryEntity(diaryEntity)
-                        .foodName(food)
-                        .build();
-                foodList.add(diaryFoodEntity);
+            MemberEntity member = memberRepository.findById(Objects.requireNonNull(id))
+                    .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
+            // 일기를 작성할 경기 조회
+            GameMatchEntity gameMatchEntity = gameMatchRepository.findById(diaryDto.gameMatchId())
+                    .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+            var teamEntity = teamRepository.findById(diaryDto.teamId())
+                    .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
+
+            if (diaryRepository.findByMemberAndGameMatchEntity(member, gameMatchEntity) != null) {
+                throw new CustomException(HttpStatus.CONFLICT, MessageEnum.Data.FAIL_DUPLICATE);
             }
-            diaryFoodRepository.saveAll(foodList);
-        }
 
-        // 선택 입력값인 함께한 사람 리스트가 비어있지 않는 경우
-        if (!diaryDto.partnerList().isEmpty()) {
-            List<PartnerEntity> partnerEntityList = new ArrayList<>();
-            for (DiaryDomain.PartnerDto partnerDto : diaryDto.partnerList()) {
-                var partnerTeamEntity = teamRepository.findById(partnerDto.teamId())
-                        .orElse(null);
-
-                var teamNm = partnerTeamEntity != null ? partnerTeamEntity.getName() : null;
-
-                PartnerEntity partnerEntity = PartnerEntity.builder()
-                        .diaryEntity(diaryEntity)
-                        .name(partnerDto.name())
-                        .teamName(teamNm)
-                        .teamEntity(partnerTeamEntity)
-                        .build();
-                partnerEntityList.add(partnerEntity);
-            }
-            partnerRepository.saveAll(partnerEntityList);
-        }
-
-
-        //
-        DiaryDomain.SeatUseHistoryDto diaryDtoSeat = diaryDto.seat();
-        if (diaryDtoSeat != null) {
-            // 좌석 조회
-            SeatEntity seatEntity = seatRepository.findById(diaryDtoSeat.id()).orElse(null);
-
-            // 좌석 이용 내역 저장
-            SeatUseHistoryEntity seatUseHistoryEntity = SeatUseHistoryEntity.builder()
-                    .diaryEntity(diaryEntity)
-                    .seatEntity(seatEntity)
-                    .seatName(diaryDtoSeat.name())
+            DiaryEntity diaryEntity = DiaryEntity.builder()
+                    .member(member)
+                    .teamName(teamEntity.getName())
+                    .teamEntity(teamEntity)
+                    .viewType(diaryDto.viewType())
+                    .gameMatchEntity(gameMatchEntity)
+                    .weatherType(diaryDto.weather())
+                    .moodType(diaryDto.mood())
+                    .content(diaryDto.content())
                     .build();
-            seatUseHistoryRepository.save(seatUseHistoryEntity);
+            diaryRepository.save(diaryEntity);
 
-            // 좌석 리뷰 저장
-            List<SeatReviewEntity> reviewList = new ArrayList<>();
-            for (String review : diaryDtoSeat.desc()) {
-                SeatReviewEntity seatReviewEntity = SeatReviewEntity.builder()
-                        .seatUseHistoryEntity(seatUseHistoryEntity)
-                        .seatReview(review)
-                        .build();
-                reviewList.add(seatReviewEntity);
+            if (!diaryDto.fileId().isEmpty()) {
+                var fileEntities = fileRepository.findAllById(diaryDto.fileId());
+                var fileRefEntities = fileEntities.stream()
+                        .map(file -> FileRefEntity.builder()
+                                .fileEntity(file)
+                                .refId(diaryEntity.getId())
+                                .refType(RefType.DIARY)
+                                .build()
+                        )
+                        .toList();
+                fileRefRepository.saveAll(fileRefEntities);
             }
-            seatReviewRepository.saveAll(reviewList);
+
+            // 선택 입력값인 음식 리스트가 비어있지 않는 경우
+            if (!diaryDto.foodNameList().isEmpty()) {
+                List<DiaryFoodEntity> foodList = new ArrayList<>();
+                for (String food : diaryDto.foodNameList()) {
+                    DiaryFoodEntity diaryFoodEntity = DiaryFoodEntity.builder()
+                            .diaryEntity(diaryEntity)
+                            .foodName(food)
+                            .build();
+                    foodList.add(diaryFoodEntity);
+
+                }
+                diaryFoodRepository.saveAll(foodList);
+            }
+
+            // 선택 입력값인 함께한 사람 리스트가 비어있지 않는 경우
+            if (!diaryDto.partnerList().isEmpty()) {
+                List<PartnerEntity> partnerEntityList = new ArrayList<>();
+                for (DiaryDomain.PartnerDto partnerDto : diaryDto.partnerList()) {
+                    var partnerTeamEntity = teamRepository.findById(partnerDto.teamId())
+                            .orElse(null);
+
+                    var teamNm = partnerTeamEntity != null ? partnerTeamEntity.getName() : null;
+
+                    PartnerEntity partnerEntity = PartnerEntity.builder()
+                            .diaryEntity(diaryEntity)
+                            .name(partnerDto.name())
+                            .teamName(teamNm)
+                            .teamEntity(partnerTeamEntity)
+                            .build();
+                    partnerEntityList.add(partnerEntity);
+                }
+                partnerRepository.saveAll(partnerEntityList);
+            }
+
+
+            //
+            DiaryDomain.SeatUseHistoryDto diaryDtoSeat = diaryDto.seat();
+            if (diaryDtoSeat != null) {
+                // 좌석 조회
+                SeatEntity seatEntity = seatRepository.findById(diaryDtoSeat.id()).orElse(null);
+
+                // 좌석 이용 내역 저장
+                SeatUseHistoryEntity seatUseHistoryEntity = SeatUseHistoryEntity.builder()
+                        .diaryEntity(diaryEntity)
+                        .seatEntity(seatEntity)
+                        .seatName(diaryDtoSeat.name())
+                        .build();
+                seatUseHistoryRepository.save(seatUseHistoryEntity);
+
+                // 좌석 리뷰 저장
+                List<SeatReviewEntity> reviewList = new ArrayList<>();
+                for (String review : diaryDtoSeat.desc()) {
+                    SeatReviewEntity seatReviewEntity = SeatReviewEntity.builder()
+                            .seatUseHistoryEntity(seatUseHistoryEntity)
+                            .seatReview(review)
+                            .build();
+                    reviewList.add(seatReviewEntity);
+                }
+                seatReviewRepository.saveAll(reviewList);
+            }
+
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    if (gameMatchEntity.getStatus().equals(MatchEnum.MatchStatus.END) || gameMatchEntity.getStatus().equals(MatchEnum.MatchStatus.CANCELED)) {
+                        var writeEventDto = new DiaryDomain.WriteEventDto(
+                                diaryDto.gameMatchId(), id, diaryEntity.getId(), EventType.DIARY
+                        );
+                        redisHandler.pushEvent("write_diary", writeEventDto);
+                    }
+                }
+            });
+
+            diaryId = diaryEntity.getId();
+        } finally {
+            redisHandler.releaseLock(lockKey);
         }
 
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                if (gameMatchEntity.getStatus().equals(MatchEnum.MatchStatus.END) || gameMatchEntity.getStatus().equals(MatchEnum.MatchStatus.CANCELED)) {
-                    var writeEventDto = new DiaryDomain.WriteEventDto(
-                            diaryDto.gameMatchId(), id, diaryEntity.getId(), EventType.DIARY
-                    );
-                    redisHandler.pushEvent("write_diary", writeEventDto);
-                }
-            }
-        });
-
-        return new DiaryDomain.WriteResponse(diaryEntity.getId());
+        return new DiaryDomain.WriteResponse(diaryId);
     }
 
     @Override

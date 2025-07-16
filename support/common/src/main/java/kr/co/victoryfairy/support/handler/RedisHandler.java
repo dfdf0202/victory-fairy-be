@@ -199,4 +199,19 @@ public class RedisHandler {
         return result;
     }
 
+    /**
+     * 락 시도
+     */
+    public boolean tryLock(String key, Duration timeout) {
+        Boolean success = redisTemplate.opsForValue().setIfAbsent(key, "lock", timeout);
+        return Boolean.TRUE.equals(success);
+    }
+
+    /**
+     * 락 해제
+     */
+    public void releaseLock(String key) {
+        redisTemplate.delete(key);
+    }
+
 }
