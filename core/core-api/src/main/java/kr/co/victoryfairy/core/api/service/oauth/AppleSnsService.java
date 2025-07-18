@@ -68,33 +68,37 @@ public class AppleSnsService implements OauthService {
         log.info("================appleCallback=============");
         log.info("code: {}", request.code());
 
-        AppleResponseWrapper appleResponseWrapper = null;
         JsonObject json = null;
         var idToken = "";
         var url = "https://appleid.apple.com/auth/token";
 
+        Map<String, String> param = new HashMap<>();
+        param.put("grant_type", "authorization_code");
+        param.put("code", request.code());
+        param.put("redirect_uri", appleCallbackUrl);
+        param.put("client_id", appleClientId);
+        //jwt secret
+        String client_secret = "";
         try {
-            Map<String, String> param = new HashMap<>();
-            param.put("grant_type", "authorization_code");
-            param.put("code", request.code());
-            param.put("redirect_uri", appleCallbackUrl);
-            param.put("client_id", appleClientId);
-            //jwt secret
-            String client_secret = this.getClientSecret();
-            param.put("client_secret", client_secret);
+             client_secret = this.getClientSecret();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new CustomException(MessageEnum.Auth.FAIL_SNS);
+        }
 
-            log.warn("url:*******" + url + "*******");
-            String response = null;
+        param.put("client_secret", client_secret);
 
-            ObjectMapper mapper = new ObjectMapper();
-
-            response = HttpClientUtils.doPost(url, param);
-
+        log.warn("url:*******" + url + "*******");
+        ObjectMapper mapper = new ObjectMapper();
+        AppleResponseWrapper appleResponseWrapper = null;
+        String response = HttpClientUtils.doPost(url, param);
+        try {
             appleResponseWrapper = mapper.readValue(response, AppleResponseWrapper.class);
-            idToken = appleResponseWrapper.getId_token();
+            log.info("appleResponseWrapper :  {}", appleResponseWrapper);
+            idToken = appleResponseWrapper.getIdToken();
             json = this.parserIdentityToken(idToken);
         } catch (Exception e) {
-            log.error("Failed to parse AppleUserInfoResponse", e);
+            e.printStackTrace();
             throw new CustomException(MessageEnum.Auth.FAIL_SNS);
         }
 

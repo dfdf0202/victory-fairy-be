@@ -20,6 +20,7 @@ import kr.co.victoryfairy.support.exception.CustomException;
 import kr.co.victoryfairy.support.handler.RedisHandler;
 import kr.co.victoryfairy.support.utils.RequestUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -28,6 +29,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MemberServiceImpl implements MemberService {
@@ -47,6 +49,8 @@ public class MemberServiceImpl implements MemberService {
     public MemberDomain.MemberOauthPathResponse getOauthPath(MemberEnum.SnsType snsType, String redirectUrl) {
         var service = oauthFactory.getService(snsType);
         var response = service.initSnsAuthPath(redirectUrl);
+        log.info("================getOauthPath" + snsType + "=============");
+        log.info("response : {}", response);
         return new MemberDomain.MemberOauthPathResponse(response);
     }
 

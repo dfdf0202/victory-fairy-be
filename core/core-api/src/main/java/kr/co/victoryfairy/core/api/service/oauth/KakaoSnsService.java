@@ -66,6 +66,7 @@ public class KakaoSnsService implements OauthService {
         try {
             tokenResponse = mapper.readValue(response, AuthToken.class);
         } catch (Exception e) {
+            e.printStackTrace();
             throw new CustomException(MessageEnum.Auth.FAIL_SNS);
         }
 
