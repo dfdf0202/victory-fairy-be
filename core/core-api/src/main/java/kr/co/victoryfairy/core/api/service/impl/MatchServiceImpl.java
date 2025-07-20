@@ -97,7 +97,7 @@ public class MatchServiceImpl implements MatchService {
                                         matchAt.format(DateTimeFormatter.ofPattern("HH:mm")),
                                         stadiumEntity.getShortName(),
                                         entity.getStatus(),
-                                        entity.getStatus().getDesc(),
+                                        entity.getStatus().equals(MatchEnum.MatchStatus.CANCELED) ? entity.getStatus().getDesc() + " " + entity.getReason() : entity.getStatus().getDesc(),
                                         awayTeamDto,
                                         homeTeamDto,
                                         isWrited
@@ -123,6 +123,7 @@ public class MatchServiceImpl implements MatchService {
             String stadium = (String) matchData.get("stadium");
             MatchEnum.MatchStatus status = MatchEnum.MatchStatus.valueOf((String) matchData.get("status"));
             String statusDetail = (String) matchData.get("statusDetail");
+            String reason = (String) matchData.get("reason");
 
             Long awayId = Long.valueOf(String.valueOf(matchData.get("awayId")));
             Long homeId = Long.valueOf(String.valueOf(matchData.get("homeId")));
@@ -149,7 +150,17 @@ public class MatchServiceImpl implements MatchService {
             var homeTeamDto = homeEntity != null ? new MatchDomain.TeamDto(homeEntity.getId(), homeEntity.getName(),
                     homeScore, homeResult) : null;
 
-            var matchDto = new MatchDomain.MatchListDto(id, date, time, stadium, status, statusDetail, awayTeamDto, homeTeamDto, isWrited);
+            var matchDto = new MatchDomain.MatchListDto(
+                    id,
+                    date,
+                    time,
+                    stadium,
+                    status,
+                    status.equals(MatchEnum.MatchStatus.CANCELED) ? statusDetail + " " + reason : statusDetail,
+                    awayTeamDto,
+                    homeTeamDto,
+                    isWrited
+            );
 
             matchList.add(matchDto);
         }

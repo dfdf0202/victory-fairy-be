@@ -54,10 +54,10 @@ public interface MatchEnum {
     }
 
     enum MatchStatus {
-        READY("예정"),
+        READY("경기예정"),
         PROGRESS("진행중"),
         END("종료"),
-        CANCELED("취소")
+        CANCELED("경기취소")
         ;
 
         private String desc;

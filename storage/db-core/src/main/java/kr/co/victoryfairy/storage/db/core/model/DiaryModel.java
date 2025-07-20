@@ -42,6 +42,7 @@ public interface DiaryModel {
         Short homeScore;
 
         LocalDateTime createdAt;
+        LocalDateTime updatedAt;
 
 
         public DiaryDto() {}

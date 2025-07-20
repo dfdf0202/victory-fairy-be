@@ -110,22 +110,34 @@ public interface DiaryDomain {
 
     record ListResponse(
             Long id,
+            Long teamId,
             LocalDate date,
             ImageDto image,
             MatchEnum.ResultType result
     ) {}
 
     record DailyListResponse(
+            @Schema(description = "일기 id")
             Long id,
+            @Schema(description = "경기장")
             String stadium,
+            @Schema(description = "경기 일자")
             LocalDate date,
+            @Schema(description = "경기 시간")
             String time,
             @Schema(description = "응원 팀 id")
             Long teamId,
+            @Schema(description = "원정 팀")
             MatchDomain.TeamDto awayTeam,
+            @Schema(description = "홈 팀")
             MatchDomain.TeamDto homeTeam,
+            @Schema(description = "일기 내용")
             String content,
+            @Schema(description = "경기 결과")
+            MatchEnum.ResultType result,
+            @Schema(description = "이미지")
             ImageDto image,
+            @Schema(description = "등록 일자")
             LocalDateTime createdAt
     ) {}
 
@@ -164,6 +176,9 @@ public interface DiaryDomain {
 
             @Schema(description = "함께한 사람 리스트")
             List<PartnerDto> partnerList,       // 함께한 사람 리스트
+
+            @Schema(description = "경기 결과")
+            MatchEnum.ResultType result,
 
             @Schema(description = "등록 일자")
             LocalDateTime createdAt,

@@ -353,7 +353,9 @@ public class DiaryServiceImpl implements DiaryService {
                 .orElseThrow(()-> new CustomException(MessageEnum.Data.FAIL_NO_RESULT));
 
         var gameRecordEntity = gameRecordRepository.findByMemberAndDiaryEntityId(member, diaryId);
-        gameRecordRepository.delete(gameRecordEntity);
+        if (gameRecordEntity != null) {
+            gameRecordRepository.delete(gameRecordEntity);
+        }
 
         var bfFileRefEntity = fileRefRepository.findAllByRefTypeAndRefIdAndIsUseTrue(RefType.DIARY, diaryId);
         if (!bfFileRefEntity.isEmpty()) {
@@ -396,7 +398,7 @@ public class DiaryServiceImpl implements DiaryService {
 
         if (id == null) {
             return monthOfDays.stream()
-                    .map(day -> new DiaryDomain.ListResponse(null, day, null, null))
+                    .map(day -> new DiaryDomain.ListResponse(null, null, day, null, null))
                     .toList();
         }
 
@@ -404,7 +406,7 @@ public class DiaryServiceImpl implements DiaryService {
 
         if (diaryList.isEmpty()) {
             return monthOfDays.stream()
-                    .map(day -> new DiaryDomain.ListResponse(null, day, null, null))
+                    .map(day -> new DiaryDomain.ListResponse(null, null, day, null, null))
                     .toList();
         }
 
@@ -422,7 +424,12 @@ public class DiaryServiceImpl implements DiaryService {
                 .collect(Collectors.toMap(
                         dto -> dto.getMatchAt().toLocalDate(),
                         dto -> dto,
-                        (existing, replacement) -> existing
+                        (existing, replacement) -> {
+                            // 우선순위: updatedAt 가 null 아니면 updatedAt 기준, 아니면 createdAt 기준
+                            var existingTime = existing.getUpdatedAt() != null ? existing.getUpdatedAt() : existing.getCreatedAt();
+                            var replacementTime = replacement.getUpdatedAt() != null ? replacement.getUpdatedAt() : replacement.getCreatedAt();
+                            return replacementTime.isAfter(existingTime) ? replacement : existing;
+                        }
                 ));
 
         return monthOfDays.stream()
@@ -430,7 +437,7 @@ public class DiaryServiceImpl implements DiaryService {
                     var dto = diaryMap.get(day);
 
                     if (dto == null) {
-                        return new DiaryDomain.ListResponse(null, day, null, null);
+                        return new DiaryDomain.ListResponse(null, null, day, null, null);
                     }
 
                     var fileRefEntity = fileMap.get(dto.getId());
@@ -441,7 +448,7 @@ public class DiaryServiceImpl implements DiaryService {
                         imageDto = new DiaryDomain.ImageDto(fileEntity.getId(), fileEntity.getPath(), fileEntity.getSaveName(), fileEntity.getExt());
                     }
 
-                    return new DiaryDomain.ListResponse(dto.getId(), day, imageDto, dto.getResultType());
+                    return new DiaryDomain.ListResponse(dto.getId(), dto.getTeamId(), day, imageDto, dto.getResultType());
                 })
                 .toList();
     }
@@ -470,36 +477,60 @@ public class DiaryServiceImpl implements DiaryService {
                 ));
 
         return diaryEntities.stream()
-                    .map(entity -> {
-                        var fileRefEntity = fileMap.get(entity.getId());
-                        DiaryDomain.ImageDto imageDto = null;
+                .sorted((e1, e2) -> {
+                    // updatedAt 우선, 없으면 createdAt 으로 비교
+                    var t1 = e1.getUpdatedAt() != null ? e1.getUpdatedAt() : e1.getCreatedAt();
+                    var t2 = e2.getUpdatedAt() != null ? e2.getUpdatedAt() : e2.getCreatedAt();
+                    return t2.compareTo(t1); // 최신순 (내림차순)
+                })
+                .map(entity -> {
+                    var fileRefEntity = fileMap.get(entity.getId());
+                    DiaryDomain.ImageDto imageDto = null;
 
-                        if (fileRefEntity != null) {
-                            var fileEntity = fileRefEntity.getFileEntity();
-                            imageDto = new DiaryDomain.ImageDto(fileEntity.getId(), fileEntity.getPath(), fileEntity.getSaveName(), fileEntity.getExt());
+                    if (fileRefEntity != null) {
+                        var fileEntity = fileRefEntity.getFileEntity();
+                        imageDto = new DiaryDomain.ImageDto(fileEntity.getId(), fileEntity.getPath(), fileEntity.getSaveName(), fileEntity.getExt());
+                    }
+
+                    var myTeam = entity.getTeamId();
+                    var isHome = entity.getHomeTeamId().equals(myTeam);
+                    var awayScore = entity.getAwayScore();
+                    var homeScore = entity.getHomeScore();
+
+
+                    MatchEnum.ResultType myResult = null;
+                    MatchEnum.ResultType awayResult = null;
+                    MatchEnum.ResultType homeResult = null;
+
+                    if (awayScore != null && homeScore != null) {
+                        boolean isDraw = awayScore.equals(homeScore);
+                        boolean isAwayWin = awayScore > homeScore;
+                        boolean isHomeWin = homeScore > awayScore;
+
+                        if (isDraw) {
+                            awayResult = homeResult = myResult = MatchEnum.ResultType.DRAW;
+                        } else if (isAwayWin) {
+                            awayResult = MatchEnum.ResultType.WIN;
+                            homeResult = MatchEnum.ResultType.LOSS;
+                            myResult = isHome ? MatchEnum.ResultType.LOSS : MatchEnum.ResultType.WIN;
+                        } else if (isHomeWin) {
+                            awayResult = MatchEnum.ResultType.LOSS;
+                            homeResult = MatchEnum.ResultType.WIN;
+                            myResult = isHome ? MatchEnum.ResultType.WIN : MatchEnum.ResultType.LOSS;
                         }
+                    }
 
-                        var awayScore = entity.getAwayScore();
-                        var homeScore = entity.getHomeScore();
+                    var awayTeamDto = new MatchDomain.TeamDto(entity.getAwayTeamId(), entity.getAwayTeamName(), awayScore, awayResult);
 
-                        MatchEnum.ResultType awayResult = awayScore == null ? null :
-                                (awayScore == homeScore ? MatchEnum.ResultType.DRAW :
-                                        (awayScore > homeScore) ? MatchEnum.ResultType.WIN : MatchEnum.ResultType.LOSS);
-                        MatchEnum.ResultType homeResult = homeScore == null ? null :
-                                (homeScore == awayScore ? MatchEnum.ResultType.DRAW :
-                                        (homeScore > awayScore) ? MatchEnum.ResultType.WIN : MatchEnum.ResultType.LOSS);
+                    var homeTeamDto = new MatchDomain.TeamDto(entity.getHomeTeamId(), entity.getHomeTeamName(), homeScore, homeResult);
 
-                        var awayTeamDto = new MatchDomain.TeamDto(entity.getAwayTeamId(), entity.getAwayTeamName(), awayScore, awayResult);
-
-                        var homeTeamDto = new MatchDomain.TeamDto(entity.getHomeTeamId(), entity.getHomeTeamName(), homeScore, homeResult);
-
-                        return new DiaryDomain.DailyListResponse(entity.getId(), entity.getShortName(),
-                                                                entity.getMatchAt().toLocalDate(), entity.getMatchAt().format(DateTimeFormatter.ofPattern("HH:mm")),
-                                                                entity.getTeamId(), awayTeamDto, homeTeamDto, entity.getContent(),
-                                                                imageDto, entity.getCreatedAt()
-                        );
-                    })
-                    .toList();
+                    return new DiaryDomain.DailyListResponse(entity.getId(), entity.getShortName(),
+                                                            entity.getMatchAt().toLocalDate(), entity.getMatchAt().format(DateTimeFormatter.ofPattern("HH:mm")),
+                                                            entity.getTeamId(), awayTeamDto, homeTeamDto, entity.getContent(),
+                                                            myResult, imageDto, entity.getCreatedAt()
+                    );
+                })
+                .toList();
     }
 
     @Override
@@ -562,6 +593,23 @@ public class DiaryServiceImpl implements DiaryService {
                 })
                 .toList();
 
+        var matchEntity = diaryEntity.getGameMatchEntity();
+        var myTeam = diaryEntity.getTeamEntity().getId();
+        var isHome = matchEntity.getHomeTeamEntity().getId().equals(myTeam);
+        var awayScore = matchEntity.getAwayScore();
+        var homeScore = matchEntity.getHomeScore();
+
+        MatchEnum.ResultType myResult = null;
+
+        if (awayScore != null && homeScore != null) {
+            if (awayScore.equals(homeScore)) {
+                myResult = MatchEnum.ResultType.DRAW;
+            } else {
+                boolean myTeamWin = (isHome && homeScore > awayScore) || (!isHome && awayScore > homeScore);
+                myResult = myTeamWin ? MatchEnum.ResultType.WIN : MatchEnum.ResultType.LOSS;
+            }
+        }
+
         return new DiaryDomain.DiaryDetailResponse(
                 diaryEntity.getTeamEntity().getId(),
                 diaryEntity.getViewType(),
@@ -573,6 +621,7 @@ public class DiaryServiceImpl implements DiaryService {
                 seatUseHistoryDto,
                 diaryEntity.getContent(),
                 partnerList,
+                myResult,
                 diaryEntity.getCreatedAt(),
                 diaryEntity.getUpdatedAt()
         );

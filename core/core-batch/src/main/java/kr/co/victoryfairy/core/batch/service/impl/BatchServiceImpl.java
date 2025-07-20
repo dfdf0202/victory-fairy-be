@@ -184,6 +184,7 @@ public class BatchServiceImpl implements BatchService {
                     map.put("statusDetail", status.innerText());
                     map.put("stadium", stadiumEntity.getFullName());
                     map.put("stadiumId", stadiumEntity.getId());
+                    map.put("reason", reason);
 
                     redisHandler.pushHash(formattedDate + "_match_list", id, map);
 

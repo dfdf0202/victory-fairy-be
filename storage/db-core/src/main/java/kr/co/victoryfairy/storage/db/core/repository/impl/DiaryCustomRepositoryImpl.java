@@ -39,8 +39,11 @@ public class DiaryCustomRepositoryImpl extends QuerydslRepositorySupport impleme
         return jpaQueryFactory
                 .select(Projections.fields(DiaryModel.DiaryDto.class
                         , diaryEntity.id
+                        , diaryEntity.teamEntity.id.as("teamId")
                         , gameMatchEntity.matchAt
                         , gameRecordEntity.resultType
+                        , diaryEntity.createdAt
+                        , diaryEntity.updatedAt
                 ))
                 .from(diaryEntity)
                 .leftJoin(gameMatchEntity).on(gameMatchEntity.id.eq(diaryEntity.gameMatchEntity.id))
@@ -73,6 +76,7 @@ public class DiaryCustomRepositoryImpl extends QuerydslRepositorySupport impleme
                         , stadiumEntity.shortName
                         , stadiumEntity.fullName
                         , diaryEntity.createdAt
+                        , diaryEntity.updatedAt
                 ))
                 .from(diaryEntity)
                 .leftJoin(gameMatchEntity).on(gameMatchEntity.id.eq(diaryEntity.gameMatchEntity.id))
